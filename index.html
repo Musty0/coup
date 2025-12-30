@@ -1,0 +1,558 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Coup (Dev)</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin: 12px; }
+      .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+      button { padding: 10px 12px; font-size: 16px; }
+      select { padding: 10px 12px; font-size: 16px; }
+      input { padding: 10px 12px; font-size: 16px; width: 100%; box-sizing: border-box; }
+      #log { white-space: pre-wrap; background: #f6f6f6; padding: 10px; border-radius: 8px; }
+      #responsePanel { margin-top: 10px; padding: 10px; background: #fff7e6; border-radius: 8px; }
+      #losePanel { margin-top: 10px; padding: 10px; background: #ffeef0; border-radius: 8px; }
+      #exchangePanel { margin-top: 10px; padding: 10px; background: #eef6ff; border-radius: 8px; }
+      #helpPanel { margin-top: 10px; padding: 12px; background: #f2fff2; border-radius: 8px; border: 1px solid #d8f3d8; }
+      #lobbyPanel { margin-top: 10px; padding: 12px; background: #f7f7ff; border-radius: 8px; border: 1px solid #dedcff; }
+      .card { border: 1px solid #ddd; border-radius: 8px; padding: 8px; margin: 6px 0; }
+      .muted { opacity: 0.7; }
+      .picked { outline: 3px solid #000; }
+      .tiny { font-size: 13px; }
+      .pill { display:inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid #ddd; background: #fafafa; font-size: 13px; }
+      .warn { color: #9b1c1c; }
+
+      /* modal */
+      #nameModalBackdrop {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+        display: none; align-items: center; justify-content: center; padding: 18px;
+      }
+      #nameModal {
+        width: min(520px, 100%);
+        background: #fff;
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      }
+      #nameModal h3 { margin: 0 0 8px 0; }
+      #nameModal .row { justify-content: flex-end; }
+    </style>
+  </head>
+  <body>
+    <div class="row" style="justify-content: space-between;">
+      <h2 style="margin:0;">Coup (Dev)</h2>
+      <div class="row">
+        <button id="helpBtn" class="pill">Help / Rules</button>
+        <button id="changeNameBtn" class="pill">Change name</button>
+        <button id="leaveBtn" class="pill">Leave</button>
+      </div>
+    </div>
+
+    <div id="helpPanel" style="display:none;">
+      <div class="row" style="justify-content: space-between;">
+        <b>Quick Guide</b>
+        <button id="helpCloseBtn" class="pill">Close</button>
+      </div>
+
+      <div style="margin-top:10px; display:grid; gap:10px;">
+        <div style="background:#fff; border:1px solid #e6e6e6; border-radius:8px; padding:10px;">
+          <b>Turn flow</b>
+          <ul style="margin:6px 0 0 18px;">
+            <li>On your turn, choose an action.</li>
+            <li>Others may <b>Challenge</b>, <b>Block</b>, or <b>Pass</b> when allowed.</li>
+            <li>Revealed influence is permanently lost.</li>
+          </ul>
+        </div>
+
+        <div style="background:#fff; border:1px solid #e6e6e6; border-radius:8px; padding:10px;">
+          <b>Actions</b>
+          <ul style="margin:6px 0 0 18px;">
+            <li><b>Income</b>: +1</li>
+            <li><b>Foreign Aid</b>: +2 (block: Duke)</li>
+            <li><b>Tax</b>: +3 (claim Duke)</li>
+            <li><b>Steal</b>: take up to 2 (claim Captain; block: Captain/Ambassador)</li>
+            <li><b>Assassinate</b>: pay 3, target loses 1 (claim Assassin; block: Contessa)</li>
+            <li><b>Exchange</b>: draw 2, choose any 2 (claim Ambassador)</li>
+            <li><b>Coup</b>: pay 7, target loses 1</li>
+          </ul>
+        </div>
+
+        <div style="background:#fff; border:1px solid #e6e6e6; border-radius:8px; padding:10px;">
+          <b>Challenges</b>
+          <ul style="margin:6px 0 0 18px;">
+            <li>If they prove the role: <b>you</b> lose 1 influence.</li>
+            <li>If they can’t: <b>they</b> lose 1 influence and action/block fails.</li>
+            <li>If proven, revealed role is swapped with the deck.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="lobbyPanel" style="display:none;">
+      <div class="row" style="justify-content: space-between;">
+        <b>Lobby</b>
+        <span class="tiny muted" id="lobbyHost"></span>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button id="startBtn">Start Game</button>
+        <span class="tiny muted" id="startHint"></span>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div id="turn">Connecting…</div>
+      <div id="me"></div>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <label for="targetSelect">Target:</label>
+      <select id="targetSelect"></select>
+    </div>
+
+    <div class="row" style="margin-top:8px;">
+      <button id="incomeBtn">Income</button>
+      <button id="aidBtn">Foreign Aid</button>
+      <button id="taxBtn">💰 Tax — Claim Duke</button>
+      <button id="assassinateBtn">🗡️ Assassinate — Claim Assassin</button>
+      <button id="stealBtn">🪙 Steal — Claim Captain</button>
+      <button id="exchangeBtn">🔄 Exchange — Claim Ambassador</button>
+      <button id="coupBtn">Coup</button>
+    </div>
+
+    <div id="responsePanel" style="display:none;">
+      <div class="muted" id="responseHint"></div>
+      <div class="tiny warn" id="riskHint" style="margin-top:6px; display:none;">⚠️ If you’re wrong, you lose 1 influence.</div>
+      <div class="row" style="margin-top:8px;">
+        <button id="passBtn">✅ Pass</button>
+        <button id="challengeBtn">🟥 Challenge</button>
+        <button id="blockDukeBtn">🛡️ Block (Duke)</button>
+        <button id="blockContessaBtn">🛡️ Block (Contessa)</button>
+        <button id="blockCaptainBtn">🛡️ Block (Captain)</button>
+        <button id="blockAmbassadorBtn">🛡️ Block (Ambassador)</button>
+      </div>
+    </div>
+
+    <div id="losePanel" style="display:none;">
+      <div><b>Choose an influence to lose:</b></div>
+      <div class="row" id="loseButtons" style="margin-top:8px;"></div>
+    </div>
+
+    <div id="exchangePanel" style="display:none;">
+      <div><b>Exchange:</b></div>
+      <div class="muted" id="exchangeHint" style="margin-top:6px;"></div>
+      <div class="row" id="exchangeButtons" style="margin-top:8px;"></div>
+      <div class="row" style="margin-top:8px;">
+        <button id="exchangeConfirmBtn">Confirm Exchange</button>
+      </div>
+    </div>
+
+    <h3>Players</h3>
+    <div id="players"></div>
+
+    <h3>Log</h3>
+    <div id="log"></div>
+
+    <!-- Name modal -->
+    <div id="nameModalBackdrop">
+      <div id="nameModal">
+        <h3>Your name</h3>
+        <div class="muted tiny" style="margin-bottom:8px;">This updates instantly for everyone.</div>
+        <input id="nameInput" maxlength="24" autocomplete="off" />
+        <div class="row" style="margin-top:10px;">
+          <button id="nameCancelBtn" class="pill">Cancel</button>
+          <button id="nameSaveBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const WS_URL = "ws://127.0.0.1:8080";
+
+      const $turn = document.getElementById("turn");
+      const $me = document.getElementById("me");
+      const $players = document.getElementById("players");
+      const $log = document.getElementById("log");
+      const $targetSelect = document.getElementById("targetSelect");
+
+      const $incomeBtn = document.getElementById("incomeBtn");
+      const $aidBtn = document.getElementById("aidBtn");
+      const $taxBtn = document.getElementById("taxBtn");
+      const $assassinateBtn = document.getElementById("assassinateBtn");
+      const $stealBtn = document.getElementById("stealBtn");
+      const $exchangeBtn = document.getElementById("exchangeBtn");
+      const $coupBtn = document.getElementById("coupBtn");
+
+      const $responsePanel = document.getElementById("responsePanel");
+      const $responseHint = document.getElementById("responseHint");
+      const $riskHint = document.getElementById("riskHint");
+      const $passBtn = document.getElementById("passBtn");
+      const $challengeBtn = document.getElementById("challengeBtn");
+      const $blockDukeBtn = document.getElementById("blockDukeBtn");
+      const $blockContessaBtn = document.getElementById("blockContessaBtn");
+      const $blockCaptainBtn = document.getElementById("blockCaptainBtn");
+      const $blockAmbassadorBtn = document.getElementById("blockAmbassadorBtn");
+
+      const $losePanel = document.getElementById("losePanel");
+      const $loseButtons = document.getElementById("loseButtons");
+
+      const $exchangePanel = document.getElementById("exchangePanel");
+      const $exchangeHint = document.getElementById("exchangeHint");
+      const $exchangeButtons = document.getElementById("exchangeButtons");
+      const $exchangeConfirmBtn = document.getElementById("exchangeConfirmBtn");
+
+      const $helpPanel = document.getElementById("helpPanel");
+      const $helpBtn = document.getElementById("helpBtn");
+      const $helpCloseBtn = document.getElementById("helpCloseBtn");
+      const $changeNameBtn = document.getElementById("changeNameBtn");
+      const $leaveBtn = document.getElementById("leaveBtn");
+
+      const $lobbyPanel = document.getElementById("lobbyPanel");
+      const $lobbyHost = document.getElementById("lobbyHost");
+      const $startBtn = document.getElementById("startBtn");
+      const $startHint = document.getElementById("startHint");
+
+      const $nameModalBackdrop = document.getElementById("nameModalBackdrop");
+      const $nameInput = document.getElementById("nameInput");
+      const $nameCancelBtn = document.getElementById("nameCancelBtn");
+      const $nameSaveBtn = document.getElementById("nameSaveBtn");
+
+      function getId() {
+        let id = sessionStorage.getItem("coup_id");
+        if (!id) {
+          id = crypto.randomUUID();
+          sessionStorage.setItem("coup_id", id);
+        }
+        return id;
+      }
+      function defaultName() { return "Player-" + Math.random().toString(16).slice(2, 6); }
+      function getName() {
+        let name = sessionStorage.getItem("coup_name");
+        if (!name) {
+          name = defaultName();
+          sessionStorage.setItem("coup_name", name);
+        }
+        return name;
+      }
+
+      const myId = getId();
+      let myName = getName();
+
+      let ws = null;
+      let lastState = null;
+
+      // private exchange stash (actor-only)
+      let exchangeOptions = null;
+      let exchangePicked = new Set();
+
+      function send(obj) {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+      }
+
+      function connect() {
+        ws = new WebSocket(WS_URL);
+        ws.addEventListener("open", () => {
+          send({ type: "join", id: myId, name: myName });
+        });
+        ws.addEventListener("message", (ev) => {
+          const msg = JSON.parse(ev.data);
+
+          if (msg.type === "state") {
+            lastState = msg.state;
+            render(msg.state);
+          }
+
+          if (msg.type === "private" && msg.kind === "exchangeOptions") {
+            exchangeOptions = { keepCount: msg.keepCount, options: msg.options };
+            exchangePicked = new Set();
+            if (lastState) render(lastState);
+          }
+        });
+      }
+
+      function playerNameById(state, id) {
+        return state.players?.find(p => p.id === id)?.name || "Someone";
+      }
+      function myPlayer(state) {
+        return state.players?.find(p => p.id === myId) || null;
+      }
+
+      // Help
+      function openHelp() { $helpPanel.style.display = "block"; }
+      function closeHelp() { $helpPanel.style.display = "none"; }
+      $helpBtn.onclick = () => ($helpPanel.style.display === "none" ? openHelp() : closeHelp());
+      $helpCloseBtn.onclick = closeHelp;
+
+      // Name modal
+      function openNameModal() {
+        $nameInput.value = myName || "";
+        $nameModalBackdrop.style.display = "flex";
+        $nameInput.focus();
+        $nameInput.select();
+      }
+      function closeNameModal() { $nameModalBackdrop.style.display = "none"; }
+      $changeNameBtn.onclick = openNameModal;
+      $nameCancelBtn.onclick = closeNameModal;
+      $nameModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === $nameModalBackdrop) closeNameModal();
+      });
+      $nameSaveBtn.onclick = () => {
+        const val = ($nameInput.value || "").trim().slice(0, 24);
+        if (!val) return;
+        myName = val;
+        sessionStorage.setItem("coup_name", myName);
+        send({ type: "rename", id: myId, name: myName });
+        closeNameModal();
+      };
+
+      // Leave
+      $leaveBtn.onclick = () => {
+        send({ type: "leave", id: myId });
+        try { ws.close(); } catch {}
+        // simple reset so re-open tab re-joins cleanly
+        setTimeout(() => location.reload(), 100);
+      };
+
+      // Lobby start
+      $startBtn.onclick = () => send({ type: "startGame" });
+
+      function render(state) {
+        const isLobby = state.phase === "lobby";
+        const me = myPlayer(state);
+        const isMyTurn = state.turnPlayerId === myId;
+
+        // Lobby panel visibility
+        $lobbyPanel.style.display = isLobby ? "block" : "none";
+
+        if (isLobby) {
+          const hostName = playerNameById(state, state.hostId);
+          $lobbyHost.textContent = `Host: ${hostName}`;
+          const isHost = state.hostId === myId;
+          const enoughPlayers = (state.players || []).length >= 2;
+
+          $startBtn.style.display = isHost ? "inline-block" : "none";
+          $startBtn.disabled = !enoughPlayers;
+
+          $startHint.textContent = isHost
+            ? (enoughPlayers ? "Ready when you are." : "Need at least 2 players.")
+            : "Waiting for host to start…";
+        }
+
+        $turn.textContent = isLobby
+          ? "Lobby: waiting for host…"
+          : (state.turnPlayerId ? "Turn: " + playerNameById(state, state.turnPlayerId) : "Turn: —");
+
+        if (me) {
+          const aliveCards = (me.influence || []).filter(c => !c.revealed).length;
+          $me.textContent = isLobby
+            ? `You: ${me.name}`
+            : `You: ${me.name} | Coins: ${me.coins} | Influence: ${aliveCards}`;
+        } else {
+          $me.textContent = "";
+        }
+
+        // targets
+        $targetSelect.innerHTML = "";
+        if (!isLobby) {
+          for (const p of (state.players || [])) {
+            if (!p.alive || p.id === myId) continue;
+            const opt = document.createElement("option");
+            opt.value = p.id;
+            opt.textContent = p.name;
+            $targetSelect.appendChild(opt);
+          }
+        }
+
+        // players list
+        $players.innerHTML = "";
+        for (const p of (state.players || [])) {
+          const div = document.createElement("div");
+          div.className = "card";
+          const inf = (p.influence || []).map(c =>
+            c.revealed ? `<span class="muted">[${c.role}✖]</span>` : `<span>[${c.role}]</span>`
+          ).join(" ");
+          const hostTag = state.hostId === p.id ? `<span class="pill">host</span>` : "";
+          div.innerHTML = `
+            <b>${p.name}</b> ${hostTag} ${!isLobby && p.id === state.turnPlayerId ? "(turn)" : ""} ${!isLobby && !p.alive ? "(DEAD)" : ""}
+            ${isLobby ? "" : `<div>Coins: ${p.coins}</div><div>${inf}</div>`}
+          `;
+          $players.appendChild(div);
+        }
+
+        $log.textContent = (state.log || []).join("\n");
+
+        // actions enabled only in game
+        const canAct = !isLobby && isMyTurn && me && me.alive && !state.pendingAction;
+        $incomeBtn.disabled = !canAct;
+        $aidBtn.disabled = !canAct;
+        $taxBtn.disabled = !canAct;
+        $assassinateBtn.disabled = !canAct || (me && me.coins < 3);
+        $stealBtn.disabled = !canAct;
+        $exchangeBtn.disabled = !canAct;
+        $coupBtn.disabled = !canAct || (me && me.coins < 7);
+
+        renderResponsePanels(state, isLobby);
+        renderExchangePanel(state, isLobby);
+      }
+
+      function sendAction(actionType) {
+        const targetId = $targetSelect.value || null;
+        send({ type: "action", id: myId, actionType, targetId });
+      }
+      function sendResponse(responseType, payload) {
+        send({ type: "response", id: myId, responseType, payload: payload || {} });
+      }
+
+      function renderExchangePanel(state, isLobby) {
+        $exchangePanel.style.display = "none";
+        if (isLobby) return;
+
+        const pending = state.pendingAction;
+        if (!pending) return;
+
+        if (pending.type !== "exchange" || pending.stage !== "awaitingChoice") return;
+        if (pending.actorId !== myId) return;
+
+        const keepCount = pending.keepCount || (exchangeOptions?.keepCount ?? 2);
+        if (!exchangeOptions || exchangeOptions.keepCount !== keepCount) return;
+
+        $exchangeButtons.innerHTML = "";
+        for (const opt of exchangeOptions.options) {
+          const b = document.createElement("button");
+          const picked = exchangePicked.has(opt.id);
+          b.textContent = opt.role + (picked ? " ✓" : "");
+          if (picked) b.classList.add("picked");
+          b.onclick = () => {
+            const next = new Set(exchangePicked);
+            if (next.has(opt.id)) next.delete(opt.id);
+            else {
+              if (next.size >= keepCount) return;
+              next.add(opt.id);
+            }
+            exchangePicked = next;
+            renderExchangePanel(state, isLobby);
+          };
+          $exchangeButtons.appendChild(b);
+        }
+
+        $exchangeHint.textContent = `Pick ${keepCount} card(s) to keep.`;
+        $exchangeConfirmBtn.disabled = exchangePicked.size !== keepCount;
+        $exchangeConfirmBtn.onclick = () => {
+          sendResponse("exchangeChoice", { keep: Array.from(exchangePicked) });
+          exchangeOptions = null;
+          exchangePicked = new Set();
+          $exchangePanel.style.display = "none";
+        };
+
+        $exchangePanel.style.display = "block";
+      }
+
+      function renderResponsePanels(state, isLobby) {
+        const pending = state.pendingAction;
+        $responsePanel.style.display = "none";
+        $losePanel.style.display = "none";
+        $riskHint.style.display = "none";
+        if (isLobby) return;
+        if (!pending) return;
+
+        if (pending.type === "loseInfluence" && pending.playerId === myId) {
+          const me = myPlayer(state);
+          $loseButtons.innerHTML = "";
+          (me.influence || []).forEach((c, i) => {
+            if (!c.revealed) {
+              const b = document.createElement("button");
+              b.textContent = `Lose ${c.role}`;
+              b.onclick = () => sendResponse("loseInfluence", { cardIndex: i });
+              $loseButtons.appendChild(b);
+            }
+          });
+          $losePanel.style.display = "block";
+          return;
+        }
+
+        const iAmPendingResponder =
+          pending.responders &&
+          Object.prototype.hasOwnProperty.call(pending.responders, myId) &&
+          pending.responders[myId] === "pending";
+
+        const iAmAssassinationTargetBlock =
+          pending.type === "assassinate" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        const iAmStealTargetBlock =
+          pending.type === "steal" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        if (!iAmPendingResponder && !iAmAssassinationTargetBlock && !iAmStealTargetBlock) return;
+
+        const showPass = true;
+        const showChallenge =
+          pending.stage === "awaitingChallenge" ||
+          pending.stage === "awaitingChallengeBlock";
+
+        const showBlockDuke =
+          pending.type === "foreign_aid" && pending.stage === "awaitingBlock";
+
+        const showBlockContessa =
+          pending.type === "assassinate" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        const showBlockCaptain =
+          pending.type === "steal" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        const showBlockAmbassador =
+          pending.type === "steal" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        $passBtn.style.display = showPass ? "inline-block" : "none";
+        $challengeBtn.style.display = showChallenge ? "inline-block" : "none";
+        $blockDukeBtn.style.display = showBlockDuke ? "inline-block" : "none";
+        $blockContessaBtn.style.display = showBlockContessa ? "inline-block" : "none";
+        $blockCaptainBtn.style.display = showBlockCaptain ? "inline-block" : "none";
+        $blockAmbassadorBtn.style.display = showBlockAmbassador ? "inline-block" : "none";
+
+        const actorName = playerNameById(state, pending.actorId);
+
+        if (pending.type === "tax" && pending.stage === "awaitingChallenge") {
+          $responseHint.textContent = `Do you believe ${actorName} has Duke?`;
+          $riskHint.style.display = "block";
+        } else if (pending.type === "steal" && pending.stage === "awaitingChallenge") {
+          $responseHint.textContent = `Do you believe ${actorName} has Captain?`;
+          $riskHint.style.display = "block";
+        } else if (pending.type === "exchange" && pending.stage === "awaitingChallenge") {
+          $responseHint.textContent = `Do you believe ${actorName} has Ambassador?`;
+          $riskHint.style.display = "block";
+        } else {
+          $responseHint.textContent = "Make your choice.";
+        }
+
+        $responsePanel.style.display = "block";
+      }
+
+      // actions
+      $incomeBtn.onclick = () => sendAction("income");
+      $aidBtn.onclick = () => sendAction("foreign_aid");
+      $taxBtn.onclick = () => sendAction("tax");
+      $assassinateBtn.onclick = () => sendAction("assassinate");
+      $stealBtn.onclick = () => sendAction("steal");
+      $exchangeBtn.onclick = () => sendAction("exchange");
+      $coupBtn.onclick = () => sendAction("coup");
+
+      // responses
+      $passBtn.onclick = () => sendResponse("pass");
+      $challengeBtn.onclick = () => sendResponse("challenge");
+      $blockDukeBtn.onclick = () => sendResponse("block", { role: "Duke" });
+      $blockContessaBtn.onclick = () => sendResponse("block", { role: "Contessa" });
+      $blockCaptainBtn.onclick = () => sendResponse("block", { role: "Captain" });
+      $blockAmbassadorBtn.onclick = () => sendResponse("block", { role: "Ambassador" });
+
+      connect();
+    </script>
+  </body>
+</html>
