@@ -8,7 +8,7 @@ const clients = new Map(); // ws -> {id,name}
 let joinOrder = []; // playerId[] (lobby order)
 let hostId = null;
 
-let phase = "lobby"; // "lobby" | "playing"
+let phase = "lobby"; // "lobby" | "playing" | "ended"
 let game = null;
 
 function sanitizeName(name) {
@@ -40,9 +40,11 @@ function lobbyStateFor(viewerId) {
 }
 
 function stateForClient(clientId) {
-  if (phase === "playing" && game) {
+  if ((phase === "playing" || phase === "ended") && game) {
     const s = game.getStateFor(clientId);
-    s.phase = "playing";
+
+    if (game.gameOver) phase = "ended";
+    s.phase = phase;
     s.hostId = hostId;
     return s;
   }
@@ -76,10 +78,7 @@ function ensureHost() {
 function resetToLobby(reason) {
   phase = "lobby";
   game = null;
-  if (reason) {
-    // optional: could stash a lobby message later; keeping simple.
-    console.log(reason);
-  }
+  if (reason) console.log(reason);
   ensureHost();
   broadcastState();
 }
@@ -93,11 +92,22 @@ function removePlayerByWs(ws) {
   ensureHost();
 
   // If someone leaves mid-game, simplest dev behavior: end and return to lobby.
-  if (phase === "playing") {
+  if (phase === "playing" || phase === "ended") {
     resetToLobby("A player left during the game. Returning to lobby.");
   } else {
     broadcastState();
   }
+}
+
+function startGameFromJoinOrder() {
+  const players = joinOrder
+    .map((id) => Array.from(clients.values()).find((c) => c.id === id))
+    .filter(Boolean)
+    .map((c) => ({ id: c.id, name: c.name }));
+
+  game = new GameEngine(players);
+  phase = "playing";
+  broadcastState();
 }
 
 wss.on("connection", (ws) => {
@@ -134,7 +144,7 @@ wss.on("connection", (ws) => {
       client.name = newName;
       clients.set(ws, client);
 
-      if (phase === "playing" && game) {
+      if ((phase === "playing" || phase === "ended") && game) {
         const p = game.getPlayer(client.id);
         if (p) p.name = newName;
       }
@@ -156,18 +166,28 @@ wss.on("connection", (ws) => {
       if (client.id !== hostId) return;
       if (joinOrder.length < 2) return;
 
-      const players = joinOrder
-        .map((id) => Array.from(clients.values()).find((c) => c.id === id))
-        .filter(Boolean)
-        .map((c) => ({ id: c.id, name: c.name }));
+      startGameFromJoinOrder();
+      return;
+    }
 
-      game = new GameEngine(players);
-      phase = "playing";
-      broadcastState();
+    // REMATCH (host only, ended only)
+    if (data.type === "rematch") {
+      if (phase !== "ended") return;
+      if (client.id !== hostId) return;
+      if (joinOrder.length < 2) return;
+
+      startGameFromJoinOrder();
       return;
     }
 
     if (phase !== "playing" || !game) return;
+
+    // If ended but phase not updated yet, block gameplay.
+    if (game.gameOver) {
+      phase = "ended";
+      broadcastState();
+      return;
+    }
 
     // ACTION
     if (data.type === "action") {
@@ -181,6 +201,8 @@ wss.on("connection", (ws) => {
         targetId: data.targetId || null,
       });
 
+      if (game.gameOver) phase = "ended";
+
       broadcastState();
       applyPrivates(result);
       return;
@@ -193,6 +215,8 @@ wss.on("connection", (ws) => {
         responseType: data.responseType,
         payload: data.payload || {},
       });
+
+      if (game.gameOver) phase = "ended";
 
       broadcastState();
       applyPrivates(result);

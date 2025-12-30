@@ -88,7 +88,12 @@ function startExchangeChoice(game, actorId) {
     privates: [
       {
         to: actorId,
-        msg: { type: "private", kind: "exchangeOptions", keepCount, options: options.map(({ id, role }) => ({ id, role })) },
+        msg: {
+          type: "private",
+          kind: "exchangeOptions",
+          keepCount,
+          options: options.map(({ id, role }) => ({ id, role })),
+        },
       },
     ],
   };
@@ -171,6 +176,12 @@ function continueAfterLoseInfluence(game, cont) {
 export function resolveAction(game, { actorId, actionType, targetId }) {
   const actor = game.getPlayer(actorId);
   if (!actor) return { state: game.getPublicState(), privates: [] };
+
+  // Mandatory Coup rule: if you have 10+ coins, you must Coup.
+  if (actionType !== "coup" && actor.coins >= 10) {
+    game.log.push(`${actor.name} has 10+ coins and must Coup.`);
+    return { state: game.getPublicState(), privates: [] };
+  }
 
   switch (actionType) {
     case "income": {
@@ -564,7 +575,6 @@ export function handleResponse(game, { playerId, responseType, payload }) {
 
   // 5) Steal (Captain / Ambassador block)
   if (pending.type === "steal") {
-    const actor = game.getPlayer(pending.actorId);
     const target = game.getPlayer(pending.targetId);
 
     // A) Challenge Captain claim

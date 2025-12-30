@@ -32,6 +32,10 @@ export class GameEngine {
     this.turnIndex = 0;
     this.pendingAction = null; // actionResolver sets this
 
+    // game end
+    this.gameOver = false;
+    this.winnerId = null;
+
     // server-only hidden state bucket (never included in public state)
     this._private = {
       exchange: new Map(), // actorId -> { keepCount, options:[{id,role,source,handIndex?}] }
@@ -44,6 +48,8 @@ export class GameEngine {
     }
 
     this.log.push("Game started. Each player has 2 influence and 2 coins.");
+    const cp = this.currentPlayer();
+    if (cp) this.log.push(`It is now ${cp.name}'s turn.`);
   }
 
   draw() {
@@ -73,6 +79,8 @@ export class GameEngine {
   }
 
   currentPlayer() {
+    if (this.gameOver) return null;
+
     const alive = this.alivePlayers();
     if (alive.length === 0) return null;
 
@@ -86,6 +94,7 @@ export class GameEngine {
 
   nextTurn() {
     this.checkWin();
+    if (this.gameOver) return;
 
     for (let guard = 0; guard < this.players.length; guard++) {
       this.turnIndex = (this.turnIndex + 1) % this.players.length;
@@ -98,8 +107,12 @@ export class GameEngine {
   }
 
   checkWin() {
+    if (this.gameOver) return;
+
     const alive = this.alivePlayers();
     if (alive.length === 1) {
+      this.gameOver = true;
+      this.winnerId = alive[0].id;
       this.log.push(`${alive[0].name} wins!`);
     }
   }
@@ -162,6 +175,8 @@ export class GameEngine {
       log: this.log.slice(-80),
       pendingAction: this.pendingAction,
       turnPlayerId: this.currentPlayer()?.id ?? null,
+      gameOver: this.gameOver,
+      winnerId: this.winnerId,
     };
   }
 
