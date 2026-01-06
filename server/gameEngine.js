@@ -18,14 +18,20 @@ function makeDeck() {
 }
 
 export class GameEngine {
-  constructor(players) {
-    // players: [{id,name}]
-    this.players = players.map((p) => ({
-      id: p.id,
-      name: p.name,
-      coins: 2,
-      influence: [], // [{ role, revealed:false }]
-    }));
+constructor(players) {
+  // players: [{id,name}]
+  const MAX_PLAYERS = 6;
+
+  if (!Array.isArray(players)) throw new Error("players must be an array");
+  if (players.length < 2) throw new Error("Need at least 2 players");
+  if (players.length > MAX_PLAYERS) throw new Error(`Max players is ${MAX_PLAYERS}`);
+
+  this.players = players.map((p) => ({
+    id: p.id,
+    name: p.name,
+    coins: 2,
+    influence: [], // [{ role, revealed:false }]
+  }));
 
     this.deck = makeDeck();
     this.log = [];

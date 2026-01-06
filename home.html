@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Coup</title>
+    <style>
+      :root {
+        --bg0: #070a10;
+        --bg1: #0b1020;
+        --ink: #eaf2ff;
+        --muted: rgba(234, 242, 255, 0.72);
+        --line: rgba(255, 255, 255, 0.12);
+        --card: rgba(255, 255, 255, 0.06);
+        --accent: #a78bfa;
+        --good: #2dd4bf;
+        --radius: 18px;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.55);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        color: var(--ink);
+        background: radial-gradient(
+            1200px 700px at 50% 25%,
+            rgba(167, 139, 250, 0.18),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 600px at 50% 70%,
+            rgba(45, 212, 191, 0.12),
+            transparent 55%
+          ),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        overflow-x: hidden;
+      }
+
+      .wrap {
+        min-height: 100%;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+      }
+
+      .panel {
+        width: min(420px, 100%);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+
+      .title {
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        font-size: 28px;
+        margin: 0;
+        text-align: center;
+      }
+      .subtitle {
+        margin: 8px 0 0;
+        text-align: center;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .hero {
+        margin: 16px auto 14px;
+        width: 96px;
+        height: 96px;
+        display: grid;
+        place-items: center;
+        border-radius: 22px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .row {
+        display: grid;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+      }
+      label span {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      input {
+        width: 100%;
+        padding: 12px 12px;
+        font-size: 16px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--ink);
+        outline: none;
+      }
+      input:focus {
+        border-color: rgba(167, 139, 250, 0.55);
+        box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+      }
+
+      .codeRow {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .hint {
+        min-height: 16px;
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+        text-align: center;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px 12px;
+        border-radius: 14px;
+        font-size: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--ink);
+        cursor: pointer;
+      }
+      button:active {
+        transform: scale(0.99);
+      }
+      button.primary {
+        background: rgba(167, 139, 250, 0.18);
+        border-color: rgba(167, 139, 250, 0.35);
+      }
+      button.good {
+        background: rgba(45, 212, 191, 0.14);
+        border-color: rgba(45, 212, 191, 0.35);
+      }
+      button.small {
+        padding: 10px 12px;
+        font-size: 14px;
+      }
+
+      .ghostLink {
+        width: auto;
+        justify-self: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
+        padding: 8px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 11px;
+        color: rgba(234, 242, 255, 0.55);
+      }
+
+      /* Desktop: keep centered but slightly roomier */
+      @media (min-width: 700px) {
+        .panel {
+          padding: 22px;
+        }
+        .title {
+          font-size: 32px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="panel">
+        <h1 class="title">Welcome to Coup</h1>
+        <p class="subtitle">A game of deduction and deception</p>
+
+        <div class="hero" aria-hidden="true">
+          <!-- Simple “crossed cards” icon (placeholder) -->
+          <svg
+            width="66"
+            height="66"
+            viewBox="0 0 66 66"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <rect
+              x="10"
+              y="14"
+              width="26"
+              height="38"
+              rx="6"
+              transform="rotate(-12 10 14)"
+              fill="rgba(255,255,255,0.08)"
+              stroke="rgba(255,255,255,0.16)"
+            />
+            <rect
+              x="30"
+              y="12"
+              width="26"
+              height="38"
+              rx="6"
+              transform="rotate(10 30 12)"
+              fill="rgba(167,139,250,0.14)"
+              stroke="rgba(167,139,250,0.35)"
+            />
+            <circle cx="41" cy="28" r="3" fill="rgba(234,242,255,0.55)" />
+            <circle cx="47" cy="28" r="3" fill="rgba(234,242,255,0.35)" />
+          </svg>
+        </div>
+
+        <div class="row">
+          <label>
+            <span>Your name (max 10)</span>
+            <input id="name" maxlength="10" autocomplete="off" />
+          </label>
+
+          <button id="createBtn" class="good">Create Game</button>
+
+          <div class="codeRow">
+            <label style="margin: 0">
+              <span>Lobby code (4 letters)</span>
+              <input
+                id="code"
+                maxlength="4"
+                placeholder="ABCD"
+                autocomplete="off"
+              />
+            </label>
+            <button id="joinBtn" class="primary small">Join</button>
+          </div>
+
+          <button id="rulesBtn" class="ghostLink" type="button">Rules</button>
+          <div class="hint" id="hint"></div>
+
+          <div class="footer">Tip: share the 4-letter code with friends.</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const $name = document.getElementById("name");
+      const $code = document.getElementById("code");
+      const $hint = document.getElementById("hint");
+
+      // Load saved name
+      $name.value = sessionStorage.getItem("coup_name") || "";
+
+      function sanitizeName(s) {
+        return (s || "").trim().slice(0, 10);
+      }
+
+      function sanitizeCode(s) {
+        return (s || "")
+          .toUpperCase()
+          .replace(/[^A-Z]/g, "")
+          .slice(0, 4);
+      }
+
+      function makeCode4() {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        let out = "";
+        for (let i = 0; i < 4; i++)
+          out += chars[Math.floor(Math.random() * chars.length)];
+        return out;
+      }
+
+      function goToGame(room) {
+        const name = sanitizeName($name.value);
+        if (!name) {
+          $hint.textContent = "Enter a name.";
+          return;
+        }
+        sessionStorage.setItem("coup_name", name);
+
+        const code = sanitizeCode(room);
+        if (code.length !== 4) {
+          $hint.textContent = "Enter a 4-letter lobby code.";
+          return;
+        }
+
+        location.href = `game.html?room=${encodeURIComponent(code)}`;
+      }
+
+      // Keep code input strictly A–Z
+      $code.addEventListener("input", () => {
+        const v = sanitizeCode($code.value);
+        if ($code.value !== v) $code.value = v;
+      });
+
+      // Enter key: join quickly
+      $code.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") goToGame($code.value);
+      });
+      $name.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          // If there's a 4-letter code, join; otherwise create
+          const v = sanitizeCode($code.value);
+          if (v.length === 4) goToGame(v);
+          else document.getElementById("createBtn").click();
+        }
+      });
+
+      document.getElementById("createBtn").onclick = () => {
+        const code = makeCode4();
+        // optional: show it in the box so user can copy
+        $code.value = code;
+        goToGame(code);
+      };
+
+      document.getElementById("joinBtn").onclick = () => {
+        goToGame($code.value);
+      };
+
+      document.getElementById("rulesBtn").onclick = () => {
+        alert("Rules UI coming next — we can reuse your in-game Help panel.");
+      };
+
+      // Invite link support: home.html?room=ABCD
+      const params = new URLSearchParams(location.search);
+      const room = params.get("room");
+
+      const lastRoom = sessionStorage.getItem("coup_last_room") || "";
+      /*const leftFlag = sessionStorage.getItem("coup_left") === "1";*/
+
+      if (room) {
+        $code.value = sanitizeCode(room);
+      } else if (lastRoom) {
+        $code.value = sanitizeCode(lastRoom);
+      }
+
+      /*// If they clicked Leave, show a neutral hint once, then clear
+      if (leftFlag) {
+        $hint.textContent = "Left game.";
+        // Optional: clear immediately so it doesn't keep showing forever
+        sessionStorage.removeItem("coup_left");
+      }*/
+    </script>
+  </body>
+</html>
