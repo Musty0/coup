@@ -1,0 +1,2731 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Coup (Dev)</title>
+    <style>
+      :root {
+        --bg0: #070a10;
+        --bg1: #0b1020;
+        --panel: rgba(10, 14, 22, 0.72);
+        --card: rgba(255, 255, 255, 0.06);
+        --line: rgba(255, 255, 255, 0.12);
+        --ink: #eaf2ff;
+        --muted: rgba(234, 242, 255, 0.72);
+        --good: #2dd4bf;
+        --risk: #fb7185;
+        --accent: #a78bfa;
+        --shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+        --radius: 16px;
+
+        --infW: 38px;
+        --infH: 50px;
+        --infR: 10px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        color: var(--ink);
+
+        background: radial-gradient(
+            1200px 700px at 50% 30%,
+            rgba(0, 0, 0, 0.35),
+            rgba(0, 0, 0, 0.75)
+          ),
+          url("assets/bg-page.jpeg");
+
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+      }
+
+      #cardZoomBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 1000;
+      }
+
+      #cardZoom {
+        width: min(260px, 74vw);
+        max-height: 90vh;
+
+        /* remove the “panel” look */
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+
+        padding: 0;
+        display: grid;
+        gap: 0;
+      }
+
+      #cardZoomHeader {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      #cardZoomTitle {
+        font-weight: 900;
+        letter-spacing: 0.2px;
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      #cardZoomClose {
+        padding: 7px 10px;
+      }
+
+      #cardZoomCard {
+        width: 100%;
+        aspect-ratio: 2 / 3;
+        border-radius: 16px;
+
+        /* card only */
+        border: none;
+        background: transparent;
+
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+      }
+
+      #cardZoomCard img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      #cardZoomBody {
+        display: none;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body[data-phase="lobby"] {
+        overflow: auto;
+      }
+
+      .wrap {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 12px 12px 0;
+        height: calc(100dvh - var(--topbarH) - var(--actionH));
+      }
+
+      :root {
+        --topbarH: 56px;
+        --actionH: 92px;
+      }
+
+      .scene {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .tableWrap {
+        flex: 1;
+        height: auto;
+        min-height: 0;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        padding: 10px 12px;
+        gap: 10px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--line);
+
+        display: grid;
+        grid-template-columns: auto auto 1fr;
+        align-items: center;
+      }
+
+      .topbarRight .row {
+        justify-content: flex-end;
+      }
+
+      .brand {
+        font-weight: 900;
+        letter-spacing: 0.4px;
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+      }
+      .brand small {
+        opacity: 0.6;
+        font-weight: 700;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      button {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--ink);
+        padding: 10px 12px;
+        font-size: 16px;
+        border-radius: 12px;
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      .pill {
+        padding: 7px 10px;
+        border-radius: 999px;
+        font-size: 13px;
+      }
+      .primary {
+        background: rgba(167, 139, 250, 0.18);
+        border-color: rgba(167, 139, 250, 0.35);
+      }
+      .good {
+        background: rgba(45, 212, 191, 0.14);
+        border-color: rgba(45, 212, 191, 0.35);
+      }
+      .risk {
+        background: rgba(251, 113, 133, 0.12);
+        border-color: rgba(251, 113, 133, 0.32);
+      }
+      .tiny {
+        font-size: 13px;
+      }
+      .muted {
+        opacity: 0.75;
+      }
+      .warn {
+        color: var(--risk);
+      }
+
+      .wrap {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 12px 12px 92px;
+      }
+
+      .scene {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        background: radial-gradient(
+            900px 500px at 50% 40%,
+            rgba(255, 255, 255, 0.06),
+            transparent 62%
+          ),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.1));
+      }
+
+      .sceneHeader {
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border-bottom: 1px solid var(--line);
+      }
+      .turnPill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.12);
+        font-size: 13px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: rgba(234, 242, 255, 0.35);
+      }
+      .dot.live {
+        background: rgba(45, 212, 191, 0.85);
+      }
+
+      .tableWrap {
+        position: relative;
+        height: min(80vh, 760px);
+        min-height: 600px;
+        padding: 14px;
+      }
+
+      .table {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(680px, 92%);
+        height: min(410px, 69%);
+        border-radius: 999px;
+
+        background: radial-gradient(
+            120% 90% at 50% 35%,
+            rgba(255, 255, 255, 0.06),
+            rgba(0, 0, 0, 0.35)
+          ),
+          url("assets/bg-table.png");
+
+        background-size: cover;
+        background-position: center;
+
+        box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.55),
+          0 30px 80px rgba(0, 0, 0, 0.6);
+      }
+
+      .centerZone {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        pointer-events: none;
+      }
+      .deckCard {
+        width: 68px;
+        height: 92px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        background: linear-gradient(
+            180deg,
+            rgba(167, 139, 250, 0.2),
+            rgba(0, 0, 0, 0.15)
+          ),
+          radial-gradient(
+            80px 80px at 50% 35%,
+            rgba(255, 255, 255, 0.14),
+            transparent 60%
+          );
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      }
+      .pile {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.12);
+        font-size: 13px;
+        opacity: 0.9;
+      }
+
+      #centerStatus[data-mode="lobby"] #targetChunk {
+        display: none;
+      }
+
+      .seat {
+        position: absolute;
+        width: 178px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.18);
+        padding: 10px;
+        cursor: pointer;
+        transition: transform 0.08s ease, outline-color 0.12s ease;
+        user-select: none;
+      }
+      .seat:active {
+        transform: scale(0.985);
+      }
+      .seat.selected {
+        outline: 3px solid rgba(167, 139, 250, 0.65);
+      }
+      .seat.dead {
+        opacity: 0.55;
+        filter: grayscale(1);
+        cursor: default;
+      }
+
+      #tableWrap[data-opp="6"] .seat:not(.you) {
+        width: 168px;
+      }
+      #tableWrap[data-opp="7"] .seat:not(.you) {
+        width: 156px;
+      }
+
+      .seatTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .seatName {
+        font-weight: 900;
+        font-size: 14px;
+      }
+      .tag {
+        font-size: 12px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        opacity: 0.95;
+      }
+
+      .seatMeta {
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        opacity: 0.9;
+      }
+      .coinStack {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .infs {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: nowrap;
+      }
+
+      .infCard + .infCard {
+        margin-left: -10px;
+      }
+
+      .infCard {
+        width: var(--infW);
+        height: var(--infH);
+        border-radius: var(--infR);
+        background: transparent;
+        overflow: hidden;
+
+        display: grid;
+        place-items: center;
+
+        font-size: 12px;
+        line-height: 1;
+        user-select: none;
+      }
+
+      .infCard img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+      }
+
+      .infCard .mark {
+        font-weight: 900;
+        opacity: 0.9;
+      }
+
+      .infCard.revealed {
+        background: transparent;
+        opacity: 0.95;
+      }
+
+      .seat.you {
+        width: min(420px, 92%);
+        left: 50%;
+        bottom: 14px;
+        transform: translateX(-50%);
+        cursor: default;
+        background: rgba(45, 212, 191, 0.08);
+        border-color: rgba(45, 212, 191, 0.22);
+      }
+      .seat.you:active {
+        transform: translateX(-50%);
+      }
+      .youMetaLine {
+        margin-top: 6px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+        font-size: 13px;
+        opacity: 0.9;
+      }
+
+      /* Lose Influence: pick by tapping the card image */
+      #loseButtons {
+        align-items: center;
+      }
+
+      .loseCardBtn {
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+        border-radius: 16px;
+        overflow: hidden;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      }
+
+      .loseCardBtn:active {
+        transform: scale(0.985);
+      }
+
+      .loseCardBtn img {
+        width: 160px;
+        height: 240px;
+        object-fit: cover;
+        display: block;
+        border-radius: 16px;
+        border: none;
+        /*transform: scale(0.97);*/
+      }
+
+      @media (hover: hover) {
+        .loseCardBtn:hover img {
+          filter: brightness(1.08);
+        }
+      }
+
+      .panelStack {
+        position: absolute;
+        left: 50%;
+        top: 14%;
+        transform: translateX(-50%);
+        width: min(540px, 92%);
+        z-index: 120;
+        pointer-events: none;
+      }
+
+      .panel {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateY(10px);
+        transition: opacity 0.16s ease, transform 0.16s ease,
+          visibility 0s linear 0.16s;
+      }
+
+      .panel.show {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateY(0);
+        transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s;
+      }
+
+      .panelTitle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .panelTitle > div {
+        flex: 1;
+        min-width: 0;
+      }
+
+      #losePanel.show {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(540px, 92%);
+        z-index: 70;
+      }
+
+      .responseMain {
+        font-size: 14px;
+        font-weight: 600;
+        white-space: normal;
+      }
+
+      .responseSub {
+        margin-top: 4px;
+        font-size: 12px;
+        opacity: 0.75;
+      }
+
+      .panelTitle b {
+        font-size: 14px;
+      }
+
+      #responsePanel .panelTitle {
+        margin-bottom: 6px;
+      }
+
+      #responsePanel .panelTitle > div {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      #responsePanel .panelTitle {
+        margin-bottom: 8px;
+      }
+
+      #responsePanel .responseSub {
+        line-height: 1.25;
+      }
+
+      .responseKicker {
+        font-size: 11px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        opacity: 0.55;
+      }
+
+      #responsePanel .row {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px !important;
+        margin-top: 10px !important;
+      }
+
+      #exchangePanel #exchangeConfirmBtn {
+        grid-column: 1 / -1;
+      }
+
+      #losePanel .row,
+      #exchangePanel .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      #responsePanel button {
+        text-align: center;
+        line-height: 1.2;
+      }
+
+      #responsePanel button {
+        min-height: 42px;
+      }
+
+      #responsePanel .blockRole {
+        display: block;
+        margin-top: 2px;
+        font-size: 11px;
+        opacity: 0.7;
+        font-weight: 600;
+      }
+
+      #responsePanel .row button {
+        width: 100%;
+      }
+
+      #passBtn,
+      #challengeBtn {
+        grid-column: 1 / -1;
+      }
+
+      #responsePanel .row.singleCol {
+        grid-template-columns: 1fr;
+      }
+
+      #responsePanel .row.threeBlocks button:nth-last-child(1) {
+        grid-column: 1 / -1;
+      }
+
+      #responsePanel .row.singleCol #blockDukeBtn,
+      #responsePanel .row.singleCol #blockContessaBtn,
+      #responsePanel .row.singleCol #blockCaptainBtn,
+      #responsePanel .row.singleCol #blockAmbassadorBtn {
+        grid-column: 1 / -1;
+      }
+
+      #blockDukeBtn,
+      #blockContessaBtn,
+      #blockCaptainBtn,
+      #blockAmbassadorBtn {
+        font-size: 13px;
+        padding: 10px 12px;
+        border-radius: 12px;
+      }
+
+      #riskHint {
+        font-size: 12px;
+        line-height: 1.3;
+        margin-top: 8px;
+      }
+
+      #riskHint.isHidden {
+        visibility: hidden;
+      }
+
+      .helpGrid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .helpItem {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 9px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      #helpPanel .helpText span {
+        line-height: 1.35;
+      }
+
+      #helpPanel .helpItem + .helpItem {
+        margin-top: 2px;
+      }
+
+      #helpPanel .helpItem {
+        background: rgba(255, 255, 255, 0.035);
+      }
+
+      #helpPanel.show {
+        z-index: 130;
+      }
+
+      .helpIcon {
+        font-size: 22px;
+        line-height: 1;
+      }
+
+      .helpText b {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .helpText span {
+        font-size: 13px;
+        opacity: 0.85;
+      }
+
+      #helpPanel {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) !important;
+
+        width: min(600px, 94%);
+        max-height: calc(100dvh - 16px);
+        overflow-y: auto;
+
+        z-index: 100;
+      }
+
+      #helpPanel::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 22px;
+        pointer-events: none;
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0),
+          rgba(0, 0, 0, 0.65)
+        );
+        border-bottom-left-radius: 16px;
+        border-bottom-right-radius: 16px;
+      }
+
+      #helpPanel[data-scroll="1"]::after {
+        display: block;
+      }
+
+      .actionBar {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 60;
+        padding: 10px 12px;
+        background: rgba(0, 0, 0, 0.45);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--line);
+      }
+      .actionInner {
+        max-width: 1120px;
+        margin: 0 auto;
+        display: flex;
+        gap: 8px;
+        overflow: auto;
+        padding-bottom: 4px;
+      }
+      .actionInner::-webkit-scrollbar {
+        height: 10px;
+      }
+      .actionInner::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+      }
+      .actionInner::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      #drawer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 65vh;
+        background: rgba(0, 0, 0, 0.7);
+        border-top: 1px solid var(--line);
+        transform: translateY(100%);
+        transition: transform 0.18s ease;
+        z-index: 80;
+        padding: 12px;
+        overflow: auto;
+      }
+      #drawer.open {
+        transform: translateY(0%);
+      }
+      #drawer .inner {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      #log {
+        white-space: pre-wrap;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 10px;
+        border-radius: 14px;
+      }
+
+      #nameModalBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 90;
+      }
+
+      #nameModal {
+        width: min(520px, 100%);
+        background: rgba(0, 0, 0, 0.65);
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+      #nameModal h3 {
+        margin: 0 0 8px 0;
+      }
+      input {
+        padding: 12px 12px;
+        font-size: 16px;
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--ink);
+      }
+
+      /* Mobile*/
+      @media (max-width: 520px) {
+        .scene {
+          border: none !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          background: transparent !important;
+          overflow: visible !important;
+        }
+        .sceneHeader {
+          background: transparent !important;
+          border-bottom: none !important;
+          padding: 8px 8px !important;
+        }
+
+        .wrap {
+          padding: 6px 6px 0;
+          height: calc(100dvh - var(--topbarH) - var(--actionH));
+        }
+
+        .tableWrap {
+          height: min(72vh, 560px);
+          min-height: 520px;
+          padding: 10px;
+        }
+
+        .table {
+          width: min(420px, 80%);
+          height: min(440px, 74%);
+          border-radius: 999px;
+        }
+
+        :root {
+          --infW: clamp(64px, 16vw, 92px);
+          --infH: calc(var(--infW) * 1.22);
+          --infR: 14px;
+          --actionH: 112px;
+        }
+
+        :root {
+          --panelShiftY: 110px;
+        }
+
+        .infCard {
+          font-size: 13px;
+        }
+
+        #seats {
+          position: absolute;
+          inset: 0;
+          z-index: 15;
+          pointer-events: none;
+        }
+
+        .seat {
+          pointer-events: auto;
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
+          width: auto;
+          padding: 0;
+        }
+
+        .seat.selected {
+          outline: none !important;
+        }
+        .seat.selected .infs {
+          filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.55))
+            drop-shadow(0 0 22px rgba(167, 139, 250, 0.28));
+        }
+
+        .seat.selected .infCard {
+          border-color: rgba(167, 139, 250, 0.55) !important;
+        }
+
+        .seat:not(.you) {
+          position: absolute !important;
+          z-index: 16;
+        }
+
+        .seat.you {
+          position: absolute !important;
+          left: 50% !important;
+          top: 80% !important;
+          transform: translate(-50%, -50%) !important;
+          z-index: 16;
+
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+
+          width: auto;
+          padding: 0;
+        }
+
+        .seatTop {
+          gap: 4px;
+          justify-content: center;
+        }
+        .seatTop .tag {
+          display: none !important;
+        }
+        .seatName {
+          font-size: 12px;
+          font-weight: 800;
+          opacity: 0.92;
+          text-align: center;
+        }
+
+        .seatMeta {
+          margin-top: 6px;
+          display: flex !important;
+          justify-content: center;
+          gap: 0;
+        }
+        .seatMeta .muted {
+          display: none !important;
+        }
+        .coinStack {
+          padding: 4px 10px;
+          font-size: 12px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(0, 0, 0, 0.14);
+        }
+
+        .infs {
+          margin-top: 6px;
+          display: flex;
+          justify-content: center;
+          flex-wrap: nowrap;
+        }
+
+        .infCard + .infCard {
+          margin-left: -12px;
+        }
+
+        .seat {
+          min-width: calc(var(--infW) * 2 + 16px);
+        }
+
+        .seat.you .youMetaLine {
+          display: none !important;
+        }
+
+        button {
+          font-size: 14px;
+          padding: 9px 10px;
+        }
+        .pill {
+          font-size: 12px;
+          padding: 6px 9px;
+        }
+
+        .panelStack {
+          width: min(520px, 96%);
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, calc(-50% + 48px));
+        }
+
+        #helpPanel {
+          max-height: min(78vh, 620px);
+        }
+
+        #helpPanel .helpGrid {
+          gap: 10px;
+        }
+
+        #helpPanel .helpSection {
+          font-size: 11px;
+          letter-spacing: 0.8px;
+          text-transform: uppercase;
+          opacity: 0.55;
+          margin-top: 6px;
+        }
+
+        #helpPanel .helpItem {
+          display: grid;
+          grid-template-columns: 34px 1fr;
+          gap: 10px;
+          align-items: start;
+        }
+
+        #helpPanel .helpIcon {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.04);
+          font-size: 18px;
+        }
+
+        #helpPanel .helpText b {
+          font-size: 13px;
+        }
+
+        #helpPanel .helpText span {
+          font-size: 12px;
+          opacity: 0.82;
+          line-height: 1.3;
+        }
+
+        #helpPanel .helpSection.collapsible {
+          width: 100%;
+          text-align: left;
+          background: transparent;
+          border: none;
+          padding: 6px 0;
+        }
+
+        #helpPanel .helpGroup {
+          display: none;
+          margin-top: 6px;
+        }
+
+        #helpPanel .helpSection.collapsible {
+          cursor: pointer;
+          position: relative;
+          padding-right: 18px;
+        }
+
+        #helpPanel .helpSection.collapsible::after {
+          content: "▸";
+          position: absolute;
+          right: 0;
+          top: 0;
+          opacity: 0.6;
+        }
+
+        #helpPanel .helpSection.collapsible.open::after {
+          content: "▾";
+        }
+
+        #helpPanel .helpSection.collapsible.open + .helpGroup {
+          display: grid;
+          gap: 10px;
+        }
+
+        .actionInner {
+          flex-wrap: wrap;
+          justify-content: center;
+          overflow: visible;
+          padding-bottom: 0;
+        }
+
+        .actionInner button {
+          flex: 1 1 calc(33.33% - 8px);
+          max-width: 160px;
+        }
+
+        :root {
+          --safeB: env(safe-area-inset-bottom, 0px);
+        }
+
+        .wrap {
+          padding-bottom: calc(112px + var(--safeB));
+        }
+
+        .actionBar {
+          padding-bottom: calc(12px + var(--safeB));
+        }
+
+        #drawer {
+          padding-bottom: calc(12px + var(--safeB));
+        }
+
+        @supports (height: 100dvh) {
+          .tableWrap {
+            height: min(72dvh, 560px);
+          }
+
+          #drawer {
+            height: 65dvh;
+          }
+        }
+
+        .topbar {
+          padding: 8px 8px;
+          gap: 8px;
+          grid-template-columns: auto auto 1fr;
+        }
+
+        .brand small {
+          display: none;
+        }
+
+        .topbarRight .row {
+          flex-wrap: nowrap;
+          gap: 6px;
+        }
+
+        .topbar {
+          padding: 6px 8px;
+          gap: 6px;
+          grid-template-columns: auto auto 1fr;
+        }
+
+        .brand small {
+          display: none;
+        }
+
+        .topbarMid {
+          justify-content: flex-start;
+        }
+
+        .topbarRight .row {
+          flex-wrap: nowrap;
+          gap: 6px;
+        }
+
+        .topbar .pill {
+          font-size: 12px;
+          padding: 6px 9px;
+          white-space: nowrap;
+        }
+
+        .topbarRight .row {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .topbarRight .row::-webkit-scrollbar {
+          display: none;
+        }
+
+        .topbarRight .row > * {
+          flex: 0 0 auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="brand">Coup <small>(dev)</small></div>
+
+      <div class="topbarRight">
+        <div class="row">
+          <button id="drawerBtn" class="pill">🧾 Log</button>
+          <button id="helpBtn" class="pill">Help</button>
+
+          <span
+            id="roomPill"
+            class="pill"
+            style="pointer-events: none; opacity: 0.85"
+          ></span>
+          <button id="changeNameBtn" class="pill">Name</button>
+          <button id="leaveBtn" class="pill">Leave</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="scene">
+        <div class="sceneHeader">
+          <div class="turnPill">
+            <span class="dot" id="liveDot"></span>
+            <span id="turn">Connecting…</span>
+          </div>
+          <div class="tiny muted" id="targetHint">Tap a player to target.</div>
+        </div>
+
+        <div class="tableWrap" id="tableWrap" data-opp="0">
+          <div class="table"></div>
+
+          <div class="centerZone">
+            <div class="deckCard" title="Deck"></div>
+            <div class="pile" id="centerStatus" data-mode="lobby">
+              🪙 <b id="meCoinsInline">0</b>
+              <span id="targetChunk">
+                • 🎯 <span id="targetLabel">No target</span></span
+              >
+            </div>
+          </div>
+
+          <div id="seats"></div>
+
+          <div class="panelStack">
+            <div id="lobbyPanel" class="panel">
+              <div class="panelTitle">
+                <b>Lobby</b>
+                <span class="tiny muted" id="lobbyHost"></span>
+              </div>
+              <div class="row">
+                <button id="startBtn" class="primary">Start Game</button>
+                <span class="tiny muted" id="startHint"></span>
+              </div>
+            </div>
+
+            <div id="endPanel" class="panel">
+              <div class="panelTitle">
+                <b>Game Over</b>
+                <span class="tiny muted" id="endHost"></span>
+              </div>
+              <div id="endWinner" style="margin-top: 4px"></div>
+              <div class="row" style="margin-top: 10px">
+                <button id="rematchBtn" class="primary">Rematch</button>
+                <span class="tiny muted" id="rematchHint"></span>
+              </div>
+            </div>
+
+            <div id="reconnectPanel" class="panel">
+              <div class="panelTitle">
+                <b>Disconnected</b>
+                <span class="tiny muted">Trying to reconnect…</span>
+              </div>
+              <div class="tiny muted" style="margin-top: 4px">
+                If this keeps happening, tap Reconnect or return Home.
+              </div>
+              <div class="row" style="margin-top: 10px">
+                <button id="reconnectNowBtn" class="primary">Reconnect</button>
+                <button id="reconnectHomeBtn" class="pill">Home</button>
+              </div>
+            </div>
+
+            <div id="mustCoupHint" class="panel">
+              <div class="panelTitle">
+                <b>Mandatory Coup</b>
+                <span class="tiny muted">10+ coins</span>
+              </div>
+              If you have 10+ coins, you must Coup.
+            </div>
+
+            <div id="responsePanel" class="panel">
+              <div class="panelTitle">
+                <div>
+                  <div id="responseKicker" class="responseKicker"></div>
+                  <div id="responseHint" class="responseMain"></div>
+                  <div id="responseSub" class="responseSub"></div>
+                </div>
+              </div>
+
+              <div class="tiny warn" id="riskHint">
+                ⚠️ If you’re wrong, you lose 1 influence.
+              </div>
+              <div class="row" style="margin-top: 10px">
+                <button id="passBtn" class="good">✅ Pass</button>
+                <button id="challengeBtn" class="risk">🟥 Challenge</button>
+
+                <button id="blockDukeBtn">
+                  🛡️ Block <span class="blockRole">Duke</span>
+                </button>
+
+                <button id="blockContessaBtn">
+                  🛡️ Block <span class="blockRole">Contessa</span>
+                </button>
+
+                <button id="blockCaptainBtn">
+                  🛡️ Block <span class="blockRole">Captain</span>
+                </button>
+
+                <button id="blockAmbassadorBtn">
+                  🛡️ Block <span class="blockRole">Ambassador</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="losePanel" class="panel">
+              <div class="panelTitle">
+                <b>Lose Influence</b>
+                <span class="tiny muted">Pick one</span>
+              </div>
+              <div class="row" id="loseButtons" style="margin-top: 10px"></div>
+            </div>
+
+            <div id="exchangePanel" class="panel">
+              <div class="panelTitle">
+                <b>Exchange</b>
+                <span class="tiny muted" id="exchangeHint"></span>
+              </div>
+              <div
+                class="row"
+                id="exchangeButtons"
+                style="margin-top: 10px"
+              ></div>
+              <div class="row" style="margin-top: 10px">
+                <button id="exchangeConfirmBtn" class="primary">
+                  Confirm Exchange
+                </button>
+              </div>
+            </div>
+
+            <div id="helpPanel" class="panel">
+              <div class="panelTitle">
+                <b>Quick Guide</b>
+                <button id="helpCloseBtn" class="pill">Close</button>
+              </div>
+
+              <div class="helpGrid">
+                <button class="helpSection collapsible" type="button">
+                  HOW TO PLAY
+                </button>
+                <div class="helpGroup">
+                  <div class="helpItem">
+                    <div class="helpIcon">🏆</div>
+                    <div class="helpText">
+                      <b>How to Win</b>
+                      <span
+                        >Be the last player with any unrevealed influence
+                        remaining.</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">🃏</div>
+                    <div class="helpText">
+                      <b>Influence</b>
+                      <span
+                        >You start with 2 hidden cards. When forced to lose
+                        influence, you reveal one. If both are revealed, you’re
+                        eliminated.</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">🪙</div>
+                    <div class="helpText">
+                      <b>Coins</b>
+                      <span
+                        >Coins are used to perform actions like Assassinate (3
+                        coins) and Coup (7 coins).</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <button class="helpSection collapsible" type="button">
+                  BASIC ACTIONS
+                </button>
+                <div class="helpGroup">
+                  <div class="helpItem">
+                    <div class="helpIcon">💵</div>
+                    <div class="helpText">
+                      <b>Income</b>
+                      <span>Take 1 coin. Cannot be blocked or challenged.</span>
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">🪙</div>
+                    <div class="helpText">
+                      <b>Foreign Aid</b>
+                      <span>Take 2 coins. Can be blocked by a Duke.</span>
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">💣</div>
+                    <div class="helpText">
+                      <b>Coup</b>
+                      <span
+                        >Pay 7 coins to force a target to lose 1 influence.
+                        Cannot be blocked or challenged.</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">⚠️</div>
+                    <div class="helpText">
+                      <b>Mandatory Coup</b>
+                      <span>If you have 10 or more coins, you must Coup.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button class="helpSection collapsible" type="button">
+                  ROLES
+                </button>
+                <div class="helpGroup">
+                  <div class="helpItem">
+                    <div class="helpIcon">👑</div>
+                    <div class="helpText">
+                      <b>Duke</b>
+                      <span
+                        ><b>Tax:</b> Take 3 coins (challengeable).
+                        <b>Block:</b> Foreign Aid.</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">🗡️</div>
+                    <div class="helpText">
+                      <b>Assassin</b>
+                      <span
+                        ><b>Assassinate:</b> Pay 3 coins to make a target lose 1
+                        influence (challengeable). Blocked by Contessa.</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">🪙</div>
+                    <div class="helpText">
+                      <b>Captain</b>
+                      <span
+                        ><b>Steal:</b> Take up to 2 coins from a player
+                        (challengeable). <b>Block:</b> Steal.</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">🔄</div>
+                    <div class="helpText">
+                      <b>Ambassador</b>
+                      <span
+                        ><b>Exchange:</b> Draw 2 cards, then choose which to
+                        keep (challengeable). <b>Block:</b> Steal.</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="helpItem">
+                    <div class="helpIcon">🛡️</div>
+                    <div class="helpText">
+                      <b>Contessa</b>
+                      <span
+                        ><b>Block:</b> Assassination (block is
+                        challengeable).</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <button class="helpSection collapsible" type="button">
+                  CHALLENGES
+                </button>
+                <div class="helpGroup">
+                  <div class="helpItem">
+                    <div class="helpIcon">❓</div>
+                    <div class="helpText">
+                      <b>Challenges</b>
+                      <span
+                        >You may challenge any role claim or block. If the claim
+                        is false, they lose influence. If it’s true, you lose
+                        influence.</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actionBar">
+      <div class="actionInner">
+        <button id="incomeBtn">Income</button>
+        <button id="aidBtn">Foreign Aid</button>
+        <button id="taxBtn">💰 Tax</button>
+        <button id="assassinateBtn">🗡️ Assassinate</button>
+        <button id="stealBtn">🪙 Steal</button>
+        <button id="exchangeBtn">🔄 Exchange</button>
+        <button id="coupBtn" class="risk">Coup</button>
+      </div>
+    </div>
+
+    <div id="drawer">
+      <div class="inner">
+        <div
+          class="row"
+          style="justify-content: space-between; margin-bottom: 10px"
+        >
+          <b>Log</b>
+          <button id="drawerCloseBtn" class="pill">Close</button>
+        </div>
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <div id="nameModalBackdrop">
+      <div id="nameModal">
+        <h3>Your name</h3>
+        <div class="muted tiny" style="margin-bottom: 10px">
+          This updates instantly for everyone.
+        </div>
+        <input id="nameInput" maxlength="10" autocomplete="off" />
+        <div class="row" style="margin-top: 12px; justify-content: flex-end">
+          <button id="nameCancelBtn" class="pill">Cancel</button>
+          <button id="nameSaveBtn" class="primary">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="cardZoomBackdrop">
+      <div id="cardZoom">
+        <div id="cardZoomHeader">
+          <div id="cardZoomTitle">Card</div>
+          <button id="cardZoomClose" class="pill">Close</button>
+        </div>
+
+        <div id="cardZoomCard"><img id="cardZoomImg" alt="" /></div>
+        <div id="cardZoomBody"></div>
+      </div>
+    </div>
+
+    <script>
+      const WS_URL = "wss://api.couponline.xyz/ws";
+
+      const $turn = document.getElementById("turn");
+      const $liveDot = document.getElementById("liveDot");
+      const $targetHint = document.getElementById("targetHint");
+
+      const $roomPill = document.getElementById("roomPill");
+
+      const $tableWrap = document.getElementById("tableWrap");
+      const $seats = document.getElementById("seats");
+
+      const $meCoinsInline = document.getElementById("meCoinsInline");
+      const $targetLabel = document.getElementById("targetLabel");
+
+      const $incomeBtn = document.getElementById("incomeBtn");
+      const $aidBtn = document.getElementById("aidBtn");
+      const $taxBtn = document.getElementById("taxBtn");
+      const $assassinateBtn = document.getElementById("assassinateBtn");
+      const $stealBtn = document.getElementById("stealBtn");
+      const $exchangeBtn = document.getElementById("exchangeBtn");
+      const $coupBtn = document.getElementById("coupBtn");
+      const $actionBar = document.querySelector(".actionBar");
+
+      const $lobbyPanel = document.getElementById("lobbyPanel");
+      const $lobbyHost = document.getElementById("lobbyHost");
+      const $startBtn = document.getElementById("startBtn");
+      const $startHint = document.getElementById("startHint");
+
+      const $endPanel = document.getElementById("endPanel");
+      const $endHost = document.getElementById("endHost");
+      const $endWinner = document.getElementById("endWinner");
+      const $rematchBtn = document.getElementById("rematchBtn");
+      const $rematchHint = document.getElementById("rematchHint");
+
+      const $reconnectPanel = document.getElementById("reconnectPanel");
+      const $reconnectNowBtn = document.getElementById("reconnectNowBtn");
+      const $reconnectHomeBtn = document.getElementById("reconnectHomeBtn");
+
+      const $mustCoupHint = document.getElementById("mustCoupHint");
+
+      const $responsePanel = document.getElementById("responsePanel");
+      const $responseHint = document.getElementById("responseHint");
+      const $responseSub = document.getElementById("responseSub");
+      const $responseKicker = document.getElementById("responseKicker");
+      const $riskHint = document.getElementById("riskHint");
+      const $passBtn = document.getElementById("passBtn");
+      const $challengeBtn = document.getElementById("challengeBtn");
+      const $blockDukeBtn = document.getElementById("blockDukeBtn");
+      const $blockContessaBtn = document.getElementById("blockContessaBtn");
+      const $blockCaptainBtn = document.getElementById("blockCaptainBtn");
+      const $blockAmbassadorBtn = document.getElementById("blockAmbassadorBtn");
+
+      const $losePanel = document.getElementById("losePanel");
+      const $loseButtons = document.getElementById("loseButtons");
+
+      const $exchangePanel = document.getElementById("exchangePanel");
+      const $exchangeHint = document.getElementById("exchangeHint");
+      const $exchangeButtons = document.getElementById("exchangeButtons");
+      const $exchangeConfirmBtn = document.getElementById("exchangeConfirmBtn");
+
+      const $helpPanel = document.getElementById("helpPanel");
+      const $helpBtn = document.getElementById("helpBtn");
+      const $helpCloseBtn = document.getElementById("helpCloseBtn");
+
+      const $drawer = document.getElementById("drawer");
+      const $drawerBtn = document.getElementById("drawerBtn");
+      const $drawerCloseBtn = document.getElementById("drawerCloseBtn");
+      const $log = document.getElementById("log");
+
+      const $changeNameBtn = document.getElementById("changeNameBtn");
+      const $leaveBtn = document.getElementById("leaveBtn");
+      const $nameModalBackdrop = document.getElementById("nameModalBackdrop");
+      const $nameInput = document.getElementById("nameInput");
+      const $nameCancelBtn = document.getElementById("nameCancelBtn");
+      const $nameSaveBtn = document.getElementById("nameSaveBtn");
+
+      const $cardZoomBackdrop = document.getElementById("cardZoomBackdrop");
+      const $cardZoomTitle = document.getElementById("cardZoomTitle");
+      const $cardZoomCard = document.getElementById("cardZoomCard");
+      const $cardZoomBody = document.getElementById("cardZoomBody");
+      const $cardZoomClose = document.getElementById("cardZoomClose");
+      const $cardZoomImg = document.getElementById("cardZoomImg");
+
+      const ROLE_CARD_IMG = {
+        Duke: "cards/duke.png",
+        duke: "cards/duke.png",
+
+        Assassin: "cards/assassin.png",
+        assassin: "cards/assassin.png",
+
+        Captain: "cards/captain.png",
+        captain: "cards/captain.png",
+
+        Ambassador: "cards/ambassador.png",
+        ambassador: "cards/ambassador.png",
+
+        Contessa: "cards/contessa.png",
+        contessa: "cards/contessa.png",
+
+        __BACK__: "cards/back.png",
+      };
+
+      function openCardZoom(role) {
+        const key = role || "__BACK__";
+        $cardZoomTitle.textContent = key === "__BACK__" ? "Hidden card" : key;
+
+        const src = ROLE_CARD_IMG[key];
+        if (src) {
+          $cardZoomImg.src = src;
+          $cardZoomImg.alt = key;
+        } else {
+          $cardZoomImg.src = "";
+          $cardZoomImg.alt = "";
+        }
+
+        $cardZoomBackdrop.style.display = "flex";
+      }
+
+      function closeCardZoom() {
+        $cardZoomBackdrop.style.display = "none";
+      }
+
+      $cardZoomClose.onclick = closeCardZoom;
+      $cardZoomBackdrop.addEventListener("click", (e) => {
+        if (e.target === $cardZoomBackdrop) closeCardZoom();
+      });
+
+      function setPanelVisible(el, on) {
+        if (!el) return;
+        el.classList.toggle("show", !!on);
+      }
+
+      function setDisconnectedUI(on) {
+        // Only affects the status pill; doesn't touch your layout rules
+        if (on) {
+          $liveDot.classList.remove("live");
+          $turn.textContent = "Disconnected";
+        }
+        setPanelVisible($reconnectPanel, on);
+      }
+
+      function getId() {
+        let id = sessionStorage.getItem("coup_id");
+        if (!id) {
+          if (crypto && typeof crypto.randomUUID === "function") {
+            id = crypto.randomUUID();
+          } else {
+            const rnd = (
+              crypto && crypto.getRandomValues
+                ? Array.from(crypto.getRandomValues(new Uint8Array(16)))
+                : Array.from({ length: 16 }, () =>
+                    Math.floor(Math.random() * 256)
+                  )
+            )
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("");
+            id = `${Date.now().toString(16)}-${rnd}`;
+          }
+          sessionStorage.setItem("coup_id", id);
+        }
+        return id;
+      }
+
+      function defaultName() {
+        return "Player-" + Math.random().toString(16).slice(2, 6);
+      }
+      function getName() {
+        let name = sessionStorage.getItem("coup_name");
+        if (!name) {
+          name = defaultName();
+          sessionStorage.setItem("coup_name", name);
+        }
+        return name;
+      }
+
+      const myId = getId();
+      let myName = getName();
+
+      const ROOM = (new URLSearchParams(location.search).get("room") || "")
+        .trim()
+        .toUpperCase();
+
+      // If someone opens game.html directly with no/invalid code, send them home.
+      if (!/^[A-Z]{4}$/.test(ROOM)) {
+        sessionStorage.setItem("coup_left", "1");
+        location.replace("home.html");
+      }
+
+      if ($roomPill) {
+        $roomPill.textContent = ROOM ? `Code: ${ROOM}` : "";
+      }
+
+      let ws = null;
+      let lastState = null;
+
+      let manualLeave = false;
+      let reconnectTimer = null;
+      let reconnectAttempt = 0;
+
+      let selectedTargetId = null;
+
+      let exchangeOptions = null;
+      let exchangePicked = new Set();
+
+      function send(obj) {
+        if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+      }
+
+      window.addEventListener("pagehide", (e) => {
+        // pagehide runs for real navigations/close; NOT for simple backgrounding.
+        // persisted=true means bfcache; don't treat as leave.
+        if (e.persisted) return;
+
+        manualLeave = true;
+        try {
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: "leave", id: myId, room: ROOM }));
+          }
+        } catch {}
+      });
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible") return;
+
+        // If user intentionally left, never auto-reconnect
+        if (manualLeave) return;
+        if (sessionStorage.getItem("coup_left") === "1") return;
+
+        if (!ws || ws.readyState === 3) connect();
+      });
+
+      function connect() {
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+
+        console.log("WS_URL =", WS_URL, "hostname =", location.hostname);
+        setDisconnectedUI(false);
+        ws = new WebSocket(WS_URL);
+
+        ws.addEventListener("open", () => {
+          reconnectAttempt = 0;
+          setDisconnectedUI(false);
+
+          // We're joining a room again intentionally, clear the "left" flag
+          sessionStorage.removeItem("coup_left");
+
+          if (ROOM) sessionStorage.setItem("coup_last_room", ROOM);
+
+          send({ type: "join", id: myId, name: myName, room: ROOM });
+        });
+
+        ws.addEventListener("message", (ev) => {
+          const msg = JSON.parse(ev.data);
+
+          if (msg.type === "state") {
+            lastState = msg.state;
+            render(msg.state);
+          }
+
+          if (msg.type === "private" && msg.kind === "exchangeOptions") {
+            exchangeOptions = {
+              keepCount: msg.keepCount,
+              options: msg.options,
+            };
+            exchangePicked = new Set();
+            if (lastState) render(lastState);
+          }
+        });
+
+        ws.addEventListener("close", () => {
+          // If user explicitly left or closed tab, do not reconnect.
+          if (manualLeave) return;
+
+          // If they intentionally left previously, never auto-reconnect.
+          if (sessionStorage.getItem("coup_left") === "1") return;
+
+          reconnectAttempt++;
+
+          // After a few failed attempts, show panel and STOP auto-retrying (Option B)
+          if (reconnectAttempt >= 3) {
+            setDisconnectedUI(true);
+            return; // <— important: no more setTimeout loops
+          }
+
+          // Auto-reconnect (mobile background can drop WS)
+          const delay = Math.min(3000, 300 + reconnectAttempt * 300);
+          reconnectTimer = setTimeout(connect, delay);
+        });
+
+        ws.addEventListener("error", () => {
+          // Let close handler handle reconnect
+          try {
+            ws.close();
+          } catch {}
+        });
+      }
+
+      function playerById(state, id) {
+        return state.players?.find((p) => p.id === id) || null;
+      }
+      function playerNameById(state, id) {
+        return playerById(state, id)?.name || "Someone";
+      }
+      function myPlayer(state) {
+        return playerById(state, myId);
+      }
+
+      function openDrawer() {
+        $drawer.classList.add("open");
+      }
+      function closeDrawer() {
+        $drawer.classList.remove("open");
+      }
+      $drawerBtn.onclick = () =>
+        $drawer.classList.contains("open") ? closeDrawer() : openDrawer();
+      $drawerCloseBtn.onclick = closeDrawer;
+
+      function openHelp() {
+        setPanelVisible($helpPanel, true);
+        requestAnimationFrame(syncHelpFade);
+      }
+
+      function closeHelp() {
+        setPanelVisible($helpPanel, false);
+      }
+
+      function syncHelpFade() {
+        const scrollable =
+          $helpPanel.scrollHeight > $helpPanel.clientHeight + 1;
+        $helpPanel.dataset.scroll = scrollable ? "1" : "0";
+      }
+
+      $helpBtn.onclick = () =>
+        $helpPanel.classList.contains("show") ? closeHelp() : openHelp();
+
+      $helpCloseBtn.onclick = closeHelp;
+
+      $helpPanel.addEventListener("scroll", syncHelpFade);
+      window.addEventListener("resize", syncHelpFade);
+
+      document.addEventListener("click", (e) => {
+        if (!$helpPanel.classList.contains("show")) return;
+
+        if ($helpPanel.contains(e.target)) return;
+
+        if ($helpBtn.contains(e.target)) return;
+
+        closeHelp();
+      });
+
+      $seats.addEventListener("click", (e) => {
+        const card = e.target.closest(".infCard");
+        if (!card) return;
+
+        const phase = document.body.dataset.phase;
+        if (phase === "lobby" || phase === "ended") return;
+
+        const isYours = !!card.closest(".seat.you");
+        const isRevealed = card.classList.contains("revealed");
+
+        // Hidden opponent card back:
+        // - don't zoom
+        // - don't stop propagation (so seat click selects/targets)
+        if (!isYours && !isRevealed) return;
+
+        // Your card or revealed card: zoom and stop seat click from also firing
+        const role = card.dataset.role;
+        if (!role) return;
+
+        e.stopPropagation();
+        openCardZoom(role);
+      });
+
+      function openNameModal() {
+        $nameInput.value = myName || "";
+        $nameModalBackdrop.style.display = "flex";
+        $nameInput.focus();
+        $nameInput.select();
+      }
+      function closeNameModal() {
+        $nameModalBackdrop.style.display = "none";
+      }
+      $changeNameBtn.onclick = openNameModal;
+      $nameCancelBtn.onclick = closeNameModal;
+      $nameModalBackdrop.addEventListener("click", (e) => {
+        if (e.target === $nameModalBackdrop) closeNameModal();
+      });
+      $nameSaveBtn.onclick = () => {
+        const val = ($nameInput.value || "").trim().slice(0, 10);
+        if (!val) return;
+        myName = val;
+        sessionStorage.setItem("coup_name", myName);
+        send({ type: "rename", id: myId, name: myName });
+        closeNameModal();
+      };
+
+      $leaveBtn.onclick = () => {
+        manualLeave = true;
+
+        // Persist that this was intentional so we don't auto-reconnect
+        sessionStorage.setItem("coup_left", "1");
+
+        // Save last room for home UX (optional but useful)
+        if (ROOM) sessionStorage.setItem("coup_last_room", ROOM);
+
+        try {
+          send({ type: "leave", id: myId, room: ROOM });
+        } catch {}
+
+        try {
+          ws.close();
+        } catch {}
+
+        location.href = "home.html";
+      };
+
+      if ($reconnectNowBtn) {
+        $reconnectNowBtn.onclick = () => {
+          if (manualLeave) return;
+
+          sessionStorage.removeItem("coup_left");
+          reconnectAttempt = 0;
+
+          if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+          }
+
+          setDisconnectedUI(false);
+
+          try {
+            ws?.close();
+          } catch {}
+
+          connect();
+        };
+      }
+
+      if ($reconnectHomeBtn) {
+        $reconnectHomeBtn.onclick = () => {
+          manualLeave = true;
+          sessionStorage.setItem("coup_left", "1");
+          try {
+            send({ type: "leave", id: myId, room: ROOM });
+          } catch {}
+          try {
+            ws?.close();
+          } catch {}
+          location.href = "home.html";
+        };
+      }
+
+      $startBtn.onclick = () => send({ type: "startGame" });
+      $rematchBtn.onclick = () => send({ type: "rematch" });
+
+      function getEllipseFromTable() {
+        const wrap = $tableWrap.getBoundingClientRect();
+        const table = $tableWrap
+          .querySelector(".table")
+          ?.getBoundingClientRect();
+
+        const cx =
+          (table
+            ? (table.left + table.right) / 2
+            : (wrap.left + wrap.right) / 2) - wrap.left;
+        const cy =
+          (table
+            ? (table.top + table.bottom) / 2
+            : (wrap.top + wrap.bottom) / 2) - wrap.top;
+
+        const rx = table ? table.width / 2 : wrap.width * 0.42;
+        const ry = table ? table.height / 2 : wrap.height * 0.28;
+
+        return { cx, cy, rx, ry, wrapW: wrap.width, wrapH: wrap.height };
+      }
+
+      function posOnEllipse(deg, outward = 1) {
+        const { cx, cy, rx, ry, wrapW, wrapH } = getEllipseFromTable();
+        const rad = (deg * Math.PI) / 180;
+        const x = cx + Math.cos(rad) * rx * outward;
+        const y = cy + Math.sin(rad) * ry * outward;
+        return { left: (x / wrapW) * 100, top: (y / wrapH) * 100 };
+      }
+
+      function tablePctToWrapPct(pos) {
+        const wrap = $tableWrap.getBoundingClientRect();
+        const table = $tableWrap
+          .querySelector(".table")
+          ?.getBoundingClientRect();
+        if (!table) return pos;
+
+        const wrapLeft =
+          ((table.left - wrap.left + (pos.left / 100) * table.width) /
+            wrap.width) *
+          100;
+
+        let wrapTop =
+          ((table.top - wrap.top + (pos.top / 100) * table.height) /
+            wrap.height) *
+          100;
+
+        // Mobile only: nudge seats slightly upward so "top = 0" sits closer to your "-6" look.
+        const isMobile = window.matchMedia("(max-width: 520px)").matches;
+        if (isMobile) wrapTop -= 4.5;
+
+        return { left: wrapLeft, top: wrapTop };
+      }
+
+      function opponentAngles(n) {
+        const A = {
+          0: [],
+          1: [-92],
+          2: [-140, -40],
+          3: [-92, -155, -25],
+          4: [-92, -155, -25, 25],
+          5: [-92, -155, -25, 20, 160],
+        };
+        return A[Math.max(0, Math.min(5, n))] || [];
+      }
+
+      function opponentSlotsEllipse(n) {
+        return opponentAngles(n).map((deg) => {
+          const isTop = deg <= -70 && deg >= -120;
+          return posOnEllipse(deg, isTop ? 1.32 : 1.12);
+        });
+      }
+
+      // Fixed mobile layout positions
+      function opponentSlotsMobileFixed(n) {
+        const t = (left, top) => ({ left, top, table: true });
+
+        if (n === 1) return [t(50, 0)];
+
+        // 3 total players (2 opponents)
+        if (n === 2) return [t(8, 24), t(92, 24)];
+
+        // 4 total players (3 opponents)
+        if (n === 3) return [t(8, 24), t(50, 0), t(92, 24)];
+
+        // 5 total players (4 opponents)
+        if (n === 4) return [t(8, 24), t(8, 60), t(92, 60), t(92, 24)];
+
+        // 6 total players (5 opponents)
+        if (n === 5)
+          return [t(8, 24), t(8, 60), t(50, 0), t(92, 60), t(92, 24)];
+
+        return [];
+      }
+
+      function opponentSlots(n) {
+        const isMobile = window.matchMedia("(max-width: 520px)").matches;
+        return isMobile ? opponentSlotsMobileFixed(n) : opponentSlotsEllipse(n);
+      }
+
+      function youSlotEllipse() {
+        return posOnEllipse(84, 1.02);
+      }
+
+      function seatStyleFromPos(pos, extraScale = 1) {
+        if (!pos) return "display:none;";
+
+        const isMobile = window.matchMedia("(max-width: 520px)").matches;
+
+        let p = pos;
+        if (isMobile && pos.table) {
+          p = tablePctToWrapPct(pos);
+        }
+
+        return `
+              left:${p.left}%;
+              top:${p.top}%;
+              transform: translate(-50%, -50%) scale(${extraScale});
+            `;
+      }
+
+      function setSelectedTarget(state, id) {
+        selectedTargetId = id;
+        const label = id ? playerNameById(state, id) : "No target";
+        $targetLabel.textContent = label;
+      }
+
+      function presetYouSlot() {
+        return { left: 50, top: 80, table: true };
+      }
+
+      function clampPos(pos) {
+        return {
+          left: Math.max(6, Math.min(94, pos.left)),
+          top: Math.max(6, Math.min(94, pos.top)),
+        };
+      }
+
+      function setActionBarState({ showBar, showOnlyCoup }) {
+        if ($actionBar) $actionBar.style.display = showBar ? "" : "none";
+
+        const buttons = [
+          $incomeBtn,
+          $aidBtn,
+          $taxBtn,
+          $assassinateBtn,
+          $stealBtn,
+          $exchangeBtn,
+          $coupBtn,
+        ];
+
+        // default: show all (except coup handled below)
+        for (const b of buttons) if (b) b.style.display = "";
+
+        // Hide Coup by default (until mandatory)
+        if ($coupBtn) $coupBtn.style.display = "none";
+
+        if (showOnlyCoup) {
+          // show only Coup, hide everything else
+          for (const b of buttons)
+            if (b && b !== $coupBtn) b.style.display = "none";
+          if ($coupBtn) $coupBtn.style.display = "";
+        }
+      }
+
+      function render(state) {
+        const phase = state.phase;
+        document.body.dataset.phase = phase;
+        const isLobby = phase === "lobby";
+        const isEnded = phase === "ended";
+        document.getElementById("centerStatus").dataset.mode =
+          isLobby || isEnded ? "lobby" : "play";
+        const me = myPlayer(state);
+        const isMyTurn = state.turnPlayerId === myId;
+
+        $liveDot.classList.toggle("live", !isLobby && !isEnded);
+        $turn.textContent = isLobby
+          ? "Lobby"
+          : isEnded
+          ? "Game over"
+          : state.turnPlayerId
+          ? `Turn: ${playerNameById(state, state.turnPlayerId)}`
+          : "Turn: —";
+
+        $targetHint.textContent = isLobby
+          ? "Waiting for host…"
+          : isEnded
+          ? "Rematch when ready."
+          : "Tap a player to target.";
+
+        $meCoinsInline.textContent = me?.coins ?? 0;
+
+        setPanelVisible($endPanel, isEnded);
+        setPanelVisible($lobbyPanel, isLobby);
+
+        if (isLobby) {
+          const hostName = playerNameById(state, state.hostId);
+          $lobbyHost.textContent = `Host: ${hostName}`;
+          const isHost = state.hostId === myId;
+          const enoughPlayers = (state.players || []).length >= 2;
+
+          $startBtn.style.display = isHost ? "inline-block" : "none";
+
+          $startHint.textContent = isHost
+            ? enoughPlayers
+              ? "Ready when you are."
+              : "Need at least 2 players."
+            : "Waiting for host…";
+
+          $lobbyHost.textContent = `Lobby code: ${ROOM}`;
+        }
+
+        if (isEnded) {
+          const hostName = playerNameById(state, state.hostId);
+          $endHost.textContent = `Host: ${hostName}`;
+          const winnerName = state.winnerId
+            ? playerNameById(state, state.winnerId)
+            : "Someone";
+          $endWinner.innerHTML = `<b>${winnerName}</b> wins.`;
+
+          const isHost = state.hostId === myId;
+          const enoughPlayers = (state.players || []).length >= 2;
+
+          $rematchBtn.style.display = isHost ? "inline-block" : "none";
+          $rematchBtn.disabled = !enoughPlayers;
+
+          $rematchHint.textContent = isHost
+            ? enoughPlayers
+              ? "Start a new game with the same players."
+              : "Need at least 2 players."
+            : "Waiting for host…";
+        }
+
+        $seats.innerHTML = "";
+
+        const players = state.players || [];
+        const others = players.filter((p) => p.id !== myId);
+
+        $tableWrap.dataset.opp = String(others.length);
+
+        const isMobile = window.matchMedia("(max-width: 520px)").matches;
+        const oppSlots = opponentSlots(others.length);
+
+        if (
+          selectedTargetId &&
+          !others.some(
+            (p) => p.id === selectedTargetId && p.alive && !isLobby && !isEnded
+          )
+        ) {
+          selectedTargetId = null;
+        }
+
+        if (!isLobby && !isEnded) {
+          if (!selectedTargetId) {
+            const firstAliveOther = others.find((p) => p.alive);
+            if (firstAliveOther) setSelectedTarget(state, firstAliveOther.id);
+            else setSelectedTarget(state, null);
+          } else {
+            setSelectedTarget(state, selectedTargetId);
+          }
+        } else {
+          setSelectedTarget(state, null);
+        }
+
+        for (let i = 0; i < others.length; i++) {
+          const p = others[i];
+          const pos = oppSlots[i];
+          const isDead = !p.alive && !isLobby;
+
+          const seat = document.createElement("div");
+          seat.dataset.pid = p.id;
+          seat.className =
+            "seat" +
+            (isDead ? " dead" : "") +
+            (selectedTargetId === p.id ? " selected" : "");
+          seat.style.cssText = seatStyleFromPos(pos);
+
+          const hostTag =
+            state.hostId === p.id ? `<span class="tag">host</span>` : "";
+          const turnTag =
+            !isLobby && !isEnded && p.id === state.turnPlayerId
+              ? `<span class="tag">turn</span>`
+              : "";
+
+          seat.innerHTML = `
+                      <div class="seatTop">
+                        <div class="seatName">${p.name}</div>
+                        <div style="display:flex; gap:6px; align-items:center;">${hostTag}${turnTag}</div>
+                      </div>
+                      <div class="seatMeta">
+                        <span class="muted">Coins</span>
+                        <span class="coinStack">🪙 <b>${p.coins ?? 0}</b></span>
+                      </div>
+                      <div class="infs">
+                        ${(p.influence || [])
+                          .map((c) => {
+                            if (c.revealed) {
+                              const src = ROLE_CARD_IMG[c.role];
+                              return `<div class="infCard revealed" data-role="${c.role}" title="${c.role}">
+                                <img src="${src}" alt="${c.role}">
+                              </div>`;
+                            }
+
+                            return `<div class="infCard">
+                              <img src="${ROLE_CARD_IMG.__BACK__}" alt="Hidden card">
+                            </div>`;
+                          })
+                          .join("")}
+                      </div>
+                    `;
+
+          seat.addEventListener("click", (ev) => {
+            const card = ev.target.closest(".infCard");
+
+            // If it's a revealed card (or your own), the zoom handler should own the click.
+            // Hidden opponent card backs should still allow targeting, so DON'T return.
+            if (card && card.classList.contains("revealed")) return;
+
+            if (isLobby || isEnded) return;
+            if (!p.alive) return;
+
+            setSelectedTarget(state, p.id);
+            render(state);
+          });
+
+          $seats.appendChild(seat);
+        }
+
+        const you = document.createElement("div");
+        you.className = "seat you";
+        you.dataset.pid = myId;
+
+        if (isMobile) {
+          you.style.cssText = seatStyleFromPos(clampPos(presetYouSlot()), 1);
+        } else {
+          you.style.cssText = seatStyleFromPos(youSlotEllipse(), 1);
+        }
+
+        const aliveCards = (me?.influence || []).filter(
+          (c) => !c.revealed
+        ).length;
+        const turnText = isLobby
+          ? "In lobby"
+          : isEnded
+          ? "Finished"
+          : isMyTurn
+          ? "Your turn"
+          : "Waiting";
+        you.innerHTML = `
+                    <div class="seatTop">
+                      <div class="seatName">${me?.name || "You"}</div>
+                      <span class="tag">${turnText}</span>
+                    </div>
+                    <div class="youMetaLine">
+                      <span class="coinStack">🪙 <b>${me?.coins ?? 0}</b></span>
+                      <span class="muted">Influence: <b>${aliveCards}</b></span>
+                      <span class="muted">Target: <b>${
+                        selectedTargetId
+                          ? playerNameById(state, selectedTargetId)
+                          : "—"
+                      }</b></span>
+                    </div>
+                    <div class="infs">
+                      ${(me?.influence || [])
+                        .map((c) => {
+                          const isVisible = !isLobby || c.revealed;
+                          const src = isVisible
+                            ? ROLE_CARD_IMG[c.role]
+                            : ROLE_CARD_IMG.__BACK__;
+
+                          const cls = c.revealed
+                            ? "infCard revealed"
+                            : "infCard";
+
+                          return `<div class="${cls}" ${
+                            isVisible
+                              ? `data-role="${c.role}" title="${c.role}"`
+                              : ""
+                          }>
+                            <img src="${src}" alt="Influence card">
+                          </div>`;
+                        })
+                        .join("")}
+                    </div>
+                  `;
+        $seats.appendChild(you);
+
+        $log.textContent = (state.log || []).join("\n");
+
+        const canAct =
+          !isLobby &&
+          !isEnded &&
+          isMyTurn &&
+          me &&
+          me.alive &&
+          !state.pendingAction;
+        const mustCoup = !!(me && me.coins >= 10);
+
+        // Action bar rules:
+        // - Hidden in lobby/ended
+        // - During game: hide Coup always, unless mandatory (10+ coins) => show ONLY Coup
+        setActionBarState({
+          showBar: !isLobby && !isEnded,
+          showOnlyCoup: !isLobby && !isEnded && mustCoup,
+        });
+
+        setPanelVisible($mustCoupHint, false);
+
+        $incomeBtn.disabled = !canAct || mustCoup;
+        $aidBtn.disabled = !canAct || mustCoup;
+        $taxBtn.disabled = !canAct || mustCoup;
+        $assassinateBtn.disabled = !canAct || mustCoup || (me && me.coins < 3);
+        $stealBtn.disabled = !canAct || mustCoup;
+        $exchangeBtn.disabled = !canAct || mustCoup;
+        $coupBtn.disabled = !canAct || (me && me.coins < 7);
+
+        renderResponsePanels(state, isLobby || isEnded);
+        renderExchangePanel(state, isLobby || isEnded);
+      }
+
+      function sendAction(actionType) {
+        const targetId = selectedTargetId || null;
+        send({ type: "action", id: myId, actionType, targetId });
+      }
+      function sendResponse(responseType, payload) {
+        send({
+          type: "response",
+          id: myId,
+          responseType,
+          payload: payload || {},
+        });
+      }
+
+      function renderExchangePanel(state, disabled) {
+        setPanelVisible($exchangePanel, false);
+        if (disabled) return;
+
+        const pending = state.pendingAction;
+        if (!pending) return;
+
+        if (pending.type !== "exchange" || pending.stage !== "awaitingChoice")
+          return;
+        if (pending.actorId !== myId) return;
+
+        const keepCount =
+          pending.keepCount || (exchangeOptions?.keepCount ?? 2);
+        if (!exchangeOptions || exchangeOptions.keepCount !== keepCount) return;
+
+        $exchangeButtons.innerHTML = "";
+        for (const opt of exchangeOptions.options) {
+          const b = document.createElement("button");
+          const picked = exchangePicked.has(opt.id);
+          b.textContent = opt.role + (picked ? " ✓" : "");
+          if (picked) b.classList.add("primary");
+          b.onclick = () => {
+            const next = new Set(exchangePicked);
+            if (next.has(opt.id)) next.delete(opt.id);
+            else {
+              if (next.size >= keepCount) return;
+              next.add(opt.id);
+            }
+            exchangePicked = next;
+            renderExchangePanel(state, disabled);
+          };
+          $exchangeButtons.appendChild(b);
+        }
+
+        $exchangeHint.textContent = `Pick ${keepCount} card(s) to keep.`;
+        $exchangeConfirmBtn.disabled = exchangePicked.size !== keepCount;
+        $exchangeConfirmBtn.onclick = () => {
+          sendResponse("exchangeChoice", { keep: Array.from(exchangePicked) });
+          exchangeOptions = null;
+          exchangePicked = new Set();
+          setPanelVisible($exchangePanel, false);
+        };
+
+        setPanelVisible($exchangePanel, true);
+      }
+
+      function syncResponseButtonLayout() {
+        const row = $responsePanel.querySelector(".row");
+        if (!row) return;
+
+        const isVisible = (el) => el && el.style.display !== "none";
+
+        const blockVisibleCount = [
+          $blockDukeBtn,
+          $blockContessaBtn,
+          $blockCaptainBtn,
+          $blockAmbassadorBtn,
+        ].filter(isVisible).length;
+
+        const challengeVisible = isVisible($challengeBtn);
+
+        const singleCol = blockVisibleCount === 1 && !challengeVisible;
+        const threeBlocks = blockVisibleCount === 3;
+        row.classList.toggle("threeBlocks", threeBlocks);
+
+        row.classList.toggle("singleCol", singleCol);
+      }
+
+      function renderResponsePanels(state, disabled) {
+        const pending = state.pendingAction;
+
+        setPanelVisible($responsePanel, false);
+        setPanelVisible($losePanel, false);
+        $riskHint.classList.add("isHidden");
+        if (disabled) return;
+        if (!pending) return;
+
+        if (pending.type === "loseInfluence" && pending.playerId === myId) {
+          const me = myPlayer(state);
+          $loseButtons.innerHTML = "";
+
+          (me.influence || []).forEach((c, i) => {
+            if (c.revealed) return;
+
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "loseCardBtn";
+            b.title = `Lose ${c.role}`;
+            b.setAttribute("aria-label", `Lose ${c.role}`);
+
+            const img = document.createElement("img");
+            img.src = ROLE_CARD_IMG[c.role] || ROLE_CARD_IMG.__BACK__;
+            img.alt = c.role;
+
+            b.appendChild(img);
+
+            b.onclick = () => sendResponse("loseInfluence", { cardIndex: i });
+
+            $loseButtons.appendChild(b);
+          });
+
+          setPanelVisible($losePanel, true);
+          return;
+        }
+
+        const iAmPendingResponder =
+          pending.responders &&
+          Object.prototype.hasOwnProperty.call(pending.responders, myId) &&
+          pending.responders[myId] === "pending";
+
+        const iAmAssassinationTargetBlock =
+          pending.type === "assassinate" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        const iAmStealTargetBlock =
+          pending.type === "steal" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        if (
+          !iAmPendingResponder &&
+          !iAmAssassinationTargetBlock &&
+          !iAmStealTargetBlock
+        )
+          return;
+
+        const showPass =
+          pending.stage === "awaitingChallenge" ||
+          pending.stage === "awaitingBlock" ||
+          pending.stage === "awaitingChallengeBlock";
+
+        const showChallenge =
+          pending.stage === "awaitingChallenge" ||
+          pending.stage === "awaitingChallengeBlock";
+
+        const showBlockDuke =
+          pending.type === "foreign_aid" && pending.stage === "awaitingBlock";
+
+        const showBlockContessa =
+          pending.type === "assassinate" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        const showBlockCaptain =
+          pending.type === "steal" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        const showBlockAmbassador =
+          pending.type === "steal" &&
+          pending.stage === "awaitingBlock" &&
+          pending.targetId === myId;
+
+        $passBtn.style.display = showPass ? "inline-block" : "none";
+        $challengeBtn.style.display = showChallenge ? "inline-block" : "none";
+        $blockDukeBtn.style.display = showBlockDuke ? "inline-block" : "none";
+        $blockContessaBtn.style.display = showBlockContessa
+          ? "inline-block"
+          : "none";
+        $blockCaptainBtn.style.display = showBlockCaptain
+          ? "inline-block"
+          : "none";
+        $blockAmbassadorBtn.style.display = showBlockAmbassador
+          ? "inline-block"
+          : "none";
+
+        const actorName = playerNameById(state, pending.actorId);
+        const targetName = pending.targetId
+          ? playerNameById(state, pending.targetId)
+          : null;
+
+        $responseHint.textContent = "Make your choice.";
+        $responseKicker.textContent = "";
+        $responseSub.textContent = "";
+
+        if (pending.stage === "awaitingChallenge") {
+          $responseKicker.textContent = "Challenge?";
+          if (pending.type === "tax") {
+            $responseHint.textContent = `Do you believe ${actorName} has Duke (Tax +3)?`;
+            $riskHint.classList.remove("isHidden");
+          } else if (pending.type === "steal") {
+            $responseHint.textContent = `Do you believe ${actorName} has Captain (Steal)?`;
+            $riskHint.classList.remove("isHidden");
+          } else if (pending.type === "assassinate") {
+            $responseHint.textContent = `Do you believe ${actorName} has Assassin (Assassinate)?`;
+            $riskHint.classList.remove("isHidden");
+          } else if (pending.type === "exchange") {
+            $responseHint.textContent = `Do you believe ${actorName} has Ambassador (Exchange)?`;
+            $riskHint.classList.remove("isHidden");
+          }
+        } else if (pending.stage === "awaitingBlock") {
+          $responseKicker.textContent = "Your choice";
+          if (pending.type === "foreign_aid") {
+            $responseHint.textContent = `${actorName} attempts Foreign Aid (+2). Block with Duke?`;
+          } else if (pending.type === "assassinate") {
+            $responseHint.textContent = `${actorName} is attempting to assassinate you (paid 3). Block with Contessa?`;
+          } else if (pending.type === "steal") {
+            $responseHint.textContent = `${actorName} is attempting to steal from you. Block with Captain or Ambassador?`;
+          }
+          $responseSub.textContent = "Pass if you don't want to block.";
+        } else if (pending.stage === "awaitingChallengeBlock") {
+          $responseKicker.textContent = "Challenge block?";
+          const blockerName = pending.blockedBy
+            ? playerNameById(state, pending.blockedBy)
+            : "Someone";
+
+          if (pending.type === "foreign_aid") {
+            $responseHint.textContent = `${blockerName} claims Duke to block Foreign Aid. Challenge the block?`;
+            $riskHint.classList.remove("isHidden");
+          } else if (pending.type === "assassinate") {
+            $responseHint.textContent = `${blockerName} claims Contessa to block the assassination. Challenge the block?`;
+            $riskHint.classList.remove("isHidden");
+          } else if (pending.type === "steal") {
+            const role = pending.blockRole || "a role";
+            $responseHint.textContent = `${blockerName} claims ${role} to block the steal. Challenge the block?`;
+            $riskHint.classList.remove("isHidden");
+          }
+        } else if (pending.type === "coup") {
+          $responseKicker.textContent = "Coup";
+          $responseHint.textContent = `${actorName} launches a Coup on ${
+            targetName || "a target"
+          } (cannot be blocked or challenged).`;
+        }
+
+        syncResponseButtonLayout();
+
+        setPanelVisible($responsePanel, true);
+      }
+
+      $incomeBtn.onclick = () => sendAction("income");
+      $aidBtn.onclick = () => sendAction("foreign_aid");
+      $taxBtn.onclick = () => sendAction("tax");
+      $assassinateBtn.onclick = () => sendAction("assassinate");
+      $stealBtn.onclick = () => sendAction("steal");
+      $exchangeBtn.onclick = () => sendAction("exchange");
+      $coupBtn.onclick = () => sendAction("coup");
+
+      $passBtn.onclick = () => sendResponse("pass");
+      $challengeBtn.onclick = () => sendResponse("challenge");
+      $blockDukeBtn.onclick = () => sendResponse("block", { role: "Duke" });
+      $blockContessaBtn.onclick = () =>
+        sendResponse("block", { role: "Contessa" });
+      $blockCaptainBtn.onclick = () =>
+        sendResponse("block", { role: "Captain" });
+      $blockAmbassadorBtn.onclick = () =>
+        sendResponse("block", { role: "Ambassador" });
+
+      document.addEventListener("click", (e) => {
+        const section = e.target.closest(".helpSection.collapsible");
+        if (!section) return;
+        section.classList.toggle("open");
+      });
+
+      function syncLayoutHeights() {
+        const topbar = document.querySelector(".topbar");
+        const action = document.querySelector(".actionBar");
+        const topH = topbar ? topbar.getBoundingClientRect().height : 0;
+        const actH = action ? action.getBoundingClientRect().height : 0;
+        document.documentElement.style.setProperty("--topbarH", `${topH}px`);
+        document.documentElement.style.setProperty("--actionH", `${actH}px`);
+      }
+
+      window.addEventListener("resize", syncLayoutHeights);
+      requestAnimationFrame(syncLayoutHeights);
+
+      connect();
+    </script>
+  </body>
+</html>
