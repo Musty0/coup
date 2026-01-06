@@ -1570,11 +1570,7 @@
     </div>
 
     <script>
-      const WS_HOST = location.hostname || "localhost"; // file:// => hostname is ""
-      const WS_URL =
-        (location.protocol === "https:" ? "wss://" : "ws://") +
-        WS_HOST +
-        ":8080";
+      const WS_URL = "wss://api.couponline.xyz/ws";
 
       const $turn = document.getElementById("turn");
       const $liveDot = document.getElementById("liveDot");
