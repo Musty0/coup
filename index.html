@@ -123,22 +123,9 @@
         overflow: auto;
       }
 
-      .wrap {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 12px 12px 0;
-        height: calc(100dvh - var(--topbarH) - var(--actionH));
-      }
-
       :root {
         --topbarH: 56px;
         --actionH: 92px;
-      }
-
-      .scene {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
       }
 
       .tableWrap {
@@ -151,7 +138,7 @@
         position: sticky;
         top: 0;
         z-index: 50;
-        padding: 10px 12px;
+        padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
         gap: 10px;
         background: rgba(0, 0, 0, 0.35);
         backdrop-filter: blur(10px);
@@ -226,9 +213,14 @@
         max-width: 1400px;
         margin: 0 auto;
         padding: 12px 12px 92px;
+        height: calc(100dvh - var(--topbarH) - var(--actionH));
       }
 
       .scene {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+
         border: 1px solid var(--line);
         border-radius: var(--radius);
         overflow: hidden;
@@ -864,8 +856,17 @@
         color: var(--ink);
       }
 
-      /* Mobile*/
+      /* Mobile */
       @media (max-width: 520px) {
+        :root {
+          --infW: clamp(64px, 16vw, 92px);
+          --infH: calc(var(--infW) * 1.22);
+          --infR: 14px;
+          --actionH: 112px;
+          --panelShiftY: 110px;
+          --safeB: env(safe-area-inset-bottom, 0px);
+        }
+
         .scene {
           border: none !important;
           border-radius: 0 !important;
@@ -873,6 +874,7 @@
           background: transparent !important;
           overflow: visible !important;
         }
+
         .sceneHeader {
           background: transparent !important;
           border-bottom: none !important;
@@ -882,6 +884,7 @@
         .wrap {
           padding: 6px 6px 0;
           height: calc(100dvh - var(--topbarH) - var(--actionH));
+          padding-bottom: calc(112px + var(--safeB));
         }
 
         .tableWrap {
@@ -894,17 +897,6 @@
           width: min(420px, 80%);
           height: min(440px, 74%);
           border-radius: 999px;
-        }
-
-        :root {
-          --infW: clamp(64px, 16vw, 92px);
-          --infH: calc(var(--infW) * 1.22);
-          --infR: 14px;
-          --actionH: 112px;
-        }
-
-        :root {
-          --panelShiftY: 110px;
         }
 
         .infCard {
@@ -926,11 +918,13 @@
           outline: none !important;
           width: auto;
           padding: 0;
+          min-width: calc(var(--infW) * 2 + 16px);
         }
 
         .seat.selected {
           outline: none !important;
         }
+
         .seat.selected .infs {
           filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.55))
             drop-shadow(0 0 22px rgba(167, 139, 250, 0.28));
@@ -951,22 +945,17 @@
           top: 80% !important;
           transform: translate(-50%, -50%) !important;
           z-index: 16;
-
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-
-          width: auto;
-          padding: 0;
         }
 
         .seatTop {
           gap: 4px;
           justify-content: center;
         }
+
         .seatTop .tag {
           display: none !important;
         }
+
         .seatName {
           font-size: 12px;
           font-weight: 800;
@@ -980,9 +969,11 @@
           justify-content: center;
           gap: 0;
         }
+
         .seatMeta .muted {
           display: none !important;
         }
+
         .coinStack {
           padding: 4px 10px;
           font-size: 12px;
@@ -1002,10 +993,6 @@
           margin-left: -12px;
         }
 
-        .seat {
-          min-width: calc(var(--infW) * 2 + 16px);
-        }
-
         .seat.you .youMetaLine {
           display: none !important;
         }
@@ -1014,6 +1001,7 @@
           font-size: 14px;
           padding: 9px 10px;
         }
+
         .pill {
           font-size: 12px;
           padding: 6px 9px;
@@ -1076,14 +1064,6 @@
           background: transparent;
           border: none;
           padding: 6px 0;
-        }
-
-        #helpPanel .helpGroup {
-          display: none;
-          margin-top: 6px;
-        }
-
-        #helpPanel .helpSection.collapsible {
           cursor: pointer;
           position: relative;
           padding-right: 18px;
@@ -1101,6 +1081,11 @@
           content: "▾";
         }
 
+        #helpPanel .helpGroup {
+          display: none;
+          margin-top: 6px;
+        }
+
         #helpPanel .helpSection.collapsible.open + .helpGroup {
           display: grid;
           gap: 10px;
@@ -1116,14 +1101,6 @@
         .actionInner button {
           flex: 1 1 calc(33.33% - 8px);
           max-width: 160px;
-        }
-
-        :root {
-          --safeB: env(safe-area-inset-bottom, 0px);
-        }
-
-        .wrap {
-          padding-bottom: calc(112px + var(--safeB));
         }
 
         .actionBar {
@@ -1144,23 +1121,9 @@
           }
         }
 
+        /* Topbar */
         .topbar {
-          padding: 8px 8px;
-          gap: 8px;
-          grid-template-columns: auto auto 1fr;
-        }
-
-        .brand small {
-          display: none;
-        }
-
-        .topbarRight .row {
-          flex-wrap: nowrap;
-          gap: 6px;
-        }
-
-        .topbar {
-          padding: 6px 8px;
+          padding: calc(6px + env(safe-area-inset-top, 0px)) 8px 6px;
           gap: 6px;
           grid-template-columns: auto auto 1fr;
         }
@@ -1176,25 +1139,23 @@
         .topbarRight .row {
           flex-wrap: nowrap;
           gap: 6px;
-        }
-
-        .topbar .pill {
-          font-size: 12px;
-          padding: 6px 9px;
-          white-space: nowrap;
-        }
-
-        .topbarRight .row {
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
         }
+
         .topbarRight .row::-webkit-scrollbar {
           display: none;
         }
 
         .topbarRight .row > * {
           flex: 0 0 auto;
+        }
+
+        .topbar .pill {
+          font-size: 12px;
+          padding: 6px 9px;
+          white-space: nowrap;
         }
       }
     </style>
@@ -1752,7 +1713,6 @@
         .trim()
         .toUpperCase();
 
-      // If someone opens game.html directly with no/invalid code, send them home.
       if (!/^[A-Z]{4}$/.test(ROOM)) {
         sessionStorage.setItem("coup_left", "1");
         location.replace("home.html");
