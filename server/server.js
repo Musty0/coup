@@ -5,7 +5,7 @@ import { resolveAction, handleResponse } from "./actionResolver.js";
 
 const wss = new WebSocketServer({ port: 8080 });
 
-const MAX_PLAYERS = 6;
+const MAX_PLAYERS = 8;
 
 // --- Rooms ---
 // rooms: roomCode -> roomState

@@ -8,8 +8,6 @@
       :root {
         --bg0: #070a10;
         --bg1: #0b1020;
-        --panel: rgba(10, 14, 22, 0.72);
-        --card: rgba(255, 255, 255, 0.06);
         --line: rgba(255, 255, 255, 0.12);
         --ink: #eaf2ff;
         --muted: rgba(234, 242, 255, 0.72);
@@ -128,12 +126,6 @@
         --actionH: 92px;
       }
 
-      .tableWrap {
-        flex: 1;
-        height: auto;
-        min-height: 0;
-      }
-
       .topbar {
         position: sticky;
         top: 0;
@@ -169,6 +161,30 @@
         gap: 8px;
         flex-wrap: wrap;
         align-items: center;
+      }
+
+      .noClick {
+        pointer-events: none;
+      }
+      .op85 {
+        opacity: 0.85;
+      }
+
+      .mt4 {
+        margin-top: 4px;
+      }
+      .mt10 {
+        margin-top: 10px;
+      }
+      .mb10 {
+        margin-bottom: 10px;
+      }
+
+      .rowBetween {
+        justify-content: space-between;
+      }
+      .rowEnd {
+        justify-content: flex-end;
       }
 
       button {
@@ -212,8 +228,9 @@
       .wrap {
         max-width: 1400px;
         margin: 0 auto;
-        padding: 12px 12px 92px;
-        height: calc(100dvh - var(--topbarH) - var(--actionH));
+        padding: 12px 12px 0;
+        height: calc(100dvh - var(--topbarH));
+        padding-bottom: var(--actionH);
       }
 
       .scene {
@@ -507,9 +524,9 @@
       }
 
       .panelStack {
-        position: absolute;
+        position: fixed;
         left: 50%;
-        top: 14%;
+        top: calc(var(--topbarH) + env(safe-area-inset-top, 0px) + 72px);
         transform: translateX(-50%);
         width: min(540px, 92%);
         z-index: 120;
@@ -576,10 +593,6 @@
 
       .panelTitle b {
         font-size: 14px;
-      }
-
-      #responsePanel .panelTitle {
-        margin-bottom: 6px;
       }
 
       #responsePanel .panelTitle > div {
@@ -863,7 +876,6 @@
           --infH: calc(var(--infW) * 1.22);
           --infR: 14px;
           --actionH: 112px;
-          --panelShiftY: 110px;
           --safeB: env(safe-area-inset-bottom, 0px);
         }
 
@@ -1005,13 +1017,6 @@
         .pill {
           font-size: 12px;
           padding: 6px 9px;
-        }
-
-        .panelStack {
-          width: min(520px, 96%);
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, calc(-50% + 48px));
         }
 
         #helpPanel {
@@ -1169,11 +1174,7 @@
           <button id="drawerBtn" class="pill">🧾 Log</button>
           <button id="helpBtn" class="pill">Help</button>
 
-          <span
-            id="roomPill"
-            class="pill"
-            style="pointer-events: none; opacity: 0.85"
-          ></span>
+          <span id="roomPill" class="pill noClick op85"></span>
           <button id="changeNameBtn" class="pill">Name</button>
           <button id="leaveBtn" class="pill">Leave</button>
         </div>
@@ -1222,8 +1223,8 @@
                 <b>Game Over</b>
                 <span class="tiny muted" id="endHost"></span>
               </div>
-              <div id="endWinner" style="margin-top: 4px"></div>
-              <div class="row" style="margin-top: 10px">
+              <div id="endWinner" class="mt4"></div>
+              <div class="row mt10">
                 <button id="rematchBtn" class="primary">Rematch</button>
                 <span class="tiny muted" id="rematchHint"></span>
               </div>
@@ -1234,10 +1235,10 @@
                 <b>Disconnected</b>
                 <span class="tiny muted">Trying to reconnect…</span>
               </div>
-              <div class="tiny muted" style="margin-top: 4px">
+              <div class="tiny muted mt4">
                 If this keeps happening, tap Reconnect or return Home.
               </div>
-              <div class="row" style="margin-top: 10px">
+              <div class="row mt10">
                 <button id="reconnectNowBtn" class="primary">Reconnect</button>
                 <button id="reconnectHomeBtn" class="pill">Home</button>
               </div>
@@ -1263,7 +1264,7 @@
               <div class="tiny warn" id="riskHint">
                 ⚠️ If you’re wrong, you lose 1 influence.
               </div>
-              <div class="row" style="margin-top: 10px">
+              <div class="row mt10">
                 <button id="passBtn" class="good">✅ Pass</button>
                 <button id="challengeBtn" class="risk">🟥 Challenge</button>
 
@@ -1290,7 +1291,7 @@
                 <b>Lose Influence</b>
                 <span class="tiny muted">Pick one</span>
               </div>
-              <div class="row" id="loseButtons" style="margin-top: 10px"></div>
+              <div class="row mt10" id="loseButtons"></div>
             </div>
 
             <div id="exchangePanel" class="panel">
@@ -1298,12 +1299,8 @@
                 <b>Exchange</b>
                 <span class="tiny muted" id="exchangeHint"></span>
               </div>
-              <div
-                class="row"
-                id="exchangeButtons"
-                style="margin-top: 10px"
-              ></div>
-              <div class="row" style="margin-top: 10px">
+              <div class="row mt10" id="exchangeButtons"></div>
+              <div class="row mt10">
                 <button id="exchangeConfirmBtn" class="primary">
                   Confirm Exchange
                 </button>
@@ -1493,10 +1490,7 @@
 
     <div id="drawer">
       <div class="inner">
-        <div
-          class="row"
-          style="justify-content: space-between; margin-bottom: 10px"
-        >
+        <div class="row rowBetween mb10">
           <b>Log</b>
           <button id="drawerCloseBtn" class="pill">Close</button>
         </div>
@@ -1511,7 +1505,7 @@
           This updates instantly for everyone.
         </div>
         <input id="nameInput" maxlength="10" autocomplete="off" />
-        <div class="row" style="margin-top: 12px; justify-content: flex-end">
+        <div class="row mt10 rowEnd">
           <button id="nameCancelBtn" class="pill">Cancel</button>
           <button id="nameSaveBtn" class="primary">Save</button>
         </div>
@@ -1532,19 +1526,15 @@
 
     <script>
       const WS_URL = "wss://api.couponline.xyz/ws";
-
       const $turn = document.getElementById("turn");
       const $liveDot = document.getElementById("liveDot");
       const $targetHint = document.getElementById("targetHint");
-
       const $roomPill = document.getElementById("roomPill");
-
       const $tableWrap = document.getElementById("tableWrap");
       const $seats = document.getElementById("seats");
-
+      const $centerStatus = document.getElementById("centerStatus");
       const $meCoinsInline = document.getElementById("meCoinsInline");
       const $targetLabel = document.getElementById("targetLabel");
-
       const $incomeBtn = document.getElementById("incomeBtn");
       const $aidBtn = document.getElementById("aidBtn");
       const $taxBtn = document.getElementById("taxBtn");
@@ -1553,24 +1543,19 @@
       const $exchangeBtn = document.getElementById("exchangeBtn");
       const $coupBtn = document.getElementById("coupBtn");
       const $actionBar = document.querySelector(".actionBar");
-
       const $lobbyPanel = document.getElementById("lobbyPanel");
       const $lobbyHost = document.getElementById("lobbyHost");
       const $startBtn = document.getElementById("startBtn");
       const $startHint = document.getElementById("startHint");
-
       const $endPanel = document.getElementById("endPanel");
       const $endHost = document.getElementById("endHost");
       const $endWinner = document.getElementById("endWinner");
       const $rematchBtn = document.getElementById("rematchBtn");
       const $rematchHint = document.getElementById("rematchHint");
-
       const $reconnectPanel = document.getElementById("reconnectPanel");
       const $reconnectNowBtn = document.getElementById("reconnectNowBtn");
       const $reconnectHomeBtn = document.getElementById("reconnectHomeBtn");
-
       const $mustCoupHint = document.getElementById("mustCoupHint");
-
       const $responsePanel = document.getElementById("responsePanel");
       const $responseHint = document.getElementById("responseHint");
       const $responseSub = document.getElementById("responseSub");
@@ -1582,37 +1567,31 @@
       const $blockContessaBtn = document.getElementById("blockContessaBtn");
       const $blockCaptainBtn = document.getElementById("blockCaptainBtn");
       const $blockAmbassadorBtn = document.getElementById("blockAmbassadorBtn");
-
       const $losePanel = document.getElementById("losePanel");
       const $loseButtons = document.getElementById("loseButtons");
-
       const $exchangePanel = document.getElementById("exchangePanel");
       const $exchangeHint = document.getElementById("exchangeHint");
       const $exchangeButtons = document.getElementById("exchangeButtons");
       const $exchangeConfirmBtn = document.getElementById("exchangeConfirmBtn");
-
       const $helpPanel = document.getElementById("helpPanel");
       const $helpBtn = document.getElementById("helpBtn");
       const $helpCloseBtn = document.getElementById("helpCloseBtn");
-
       const $drawer = document.getElementById("drawer");
       const $drawerBtn = document.getElementById("drawerBtn");
       const $drawerCloseBtn = document.getElementById("drawerCloseBtn");
       const $log = document.getElementById("log");
-
       const $changeNameBtn = document.getElementById("changeNameBtn");
       const $leaveBtn = document.getElementById("leaveBtn");
       const $nameModalBackdrop = document.getElementById("nameModalBackdrop");
       const $nameInput = document.getElementById("nameInput");
       const $nameCancelBtn = document.getElementById("nameCancelBtn");
       const $nameSaveBtn = document.getElementById("nameSaveBtn");
-
       const $cardZoomBackdrop = document.getElementById("cardZoomBackdrop");
       const $cardZoomTitle = document.getElementById("cardZoomTitle");
-      const $cardZoomCard = document.getElementById("cardZoomCard");
-      const $cardZoomBody = document.getElementById("cardZoomBody");
       const $cardZoomClose = document.getElementById("cardZoomClose");
       const $cardZoomImg = document.getElementById("cardZoomImg");
+      const mqMobile = window.matchMedia("(max-width: 520px)");
+      const isMobile = () => mqMobile.matches;
 
       const ROLE_CARD_IMG = {
         Duke: "cards/duke.png",
@@ -2033,10 +2012,7 @@
             wrap.height) *
           100;
 
-        // Mobile only: nudge seats slightly upward so "top = 0" sits closer to your "-6" look.
-        const isMobile = window.matchMedia("(max-width: 520px)").matches;
-        if (isMobile) wrapTop -= 4.5;
-
+        if (isMobile()) wrapTop -= 4.5;
         return { left: wrapLeft, top: wrapTop };
       }
 
@@ -2048,8 +2024,11 @@
           3: [-92, -155, -25],
           4: [-92, -155, -25, 25],
           5: [-92, -155, -25, 20, 160],
+          6: [-125, -55, 175, 5, 62, 118],
+          7: [-125, -55, -92, 165, 5, 70, 105],
         };
-        return A[Math.max(0, Math.min(5, n))] || [];
+
+        return A[Math.max(0, Math.min(7, n))] || [];
       }
 
       function opponentSlotsEllipse(n) {
@@ -2078,33 +2057,57 @@
         if (n === 5)
           return [t(8, 24), t(8, 60), t(50, 0), t(92, 60), t(92, 24)];
 
+        // 7 players total (6 opponents): 2 top, 2 sides, 2 bottom
+        if (n === 6)
+          return [
+            t(34, 6),
+            t(66, 6), // top (2)
+            t(8, 44),
+            t(92, 44), // sides (2)
+            t(32, 70),
+            t(68, 70), // bottom (2) - you remains centered
+          ];
+
+        // 8 players total (7 opponents): 2 top, 2 bottom, +3 around (you gets pushed aside)
+        if (n === 7)
+          return [
+            t(34, 6),
+            t(66, 6), // top (2)
+            t(50, 0), // extra top/center (1)
+            t(8, 44),
+            t(92, 44), // sides (2)
+            t(40, 70),
+            t(72, 70), // bottom (2) - center bottom now free
+          ];
+
         return [];
       }
 
       function opponentSlots(n) {
-        const isMobile = window.matchMedia("(max-width: 520px)").matches;
-        return isMobile ? opponentSlotsMobileFixed(n) : opponentSlotsEllipse(n);
+        return isMobile()
+          ? opponentSlotsMobileFixed(n)
+          : opponentSlotsEllipse(n);
       }
 
-      function youSlotEllipse() {
-        return posOnEllipse(84, 1.02);
+      function youSlotEllipse(oppCount) {
+        if (oppCount < 7) return posOnEllipse(84, 1.02);
+        return posOnEllipse(132, 1.02);
       }
 
       function seatStyleFromPos(pos, extraScale = 1) {
         if (!pos) return "display:none;";
 
-        const isMobile = window.matchMedia("(max-width: 520px)").matches;
-
         let p = pos;
-        if (isMobile && pos.table) {
+        if (isMobile() && pos.table) {
           p = tablePctToWrapPct(pos);
         }
 
         return `
-              left:${p.left}%;
-              top:${p.top}%;
-              transform: translate(-50%, -50%) scale(${extraScale});
-            `;
+
+                    left:${p.left}%;
+                    top:${p.top}%;
+                    transform: translate(-50%, -50%) scale(${extraScale});
+                  `;
       }
 
       function setSelectedTarget(state, id) {
@@ -2113,8 +2116,12 @@
         $targetLabel.textContent = label;
       }
 
-      function presetYouSlot() {
-        return { left: 50, top: 80, table: true };
+      function presetYouSlot(oppCount) {
+        // Default: centered
+        if (oppCount < 7) return { left: 50, top: 80, table: true };
+
+        // 8 players: push you to bottom-left side
+        return { left: 18, top: 80, table: true };
       }
 
       function clampPos(pos) {
@@ -2156,8 +2163,7 @@
         document.body.dataset.phase = phase;
         const isLobby = phase === "lobby";
         const isEnded = phase === "ended";
-        document.getElementById("centerStatus").dataset.mode =
-          isLobby || isEnded ? "lobby" : "play";
+        $centerStatus.dataset.mode = isLobby || isEnded ? "lobby" : "play";
         const me = myPlayer(state);
         const isMyTurn = state.turnPlayerId === myId;
 
@@ -2226,7 +2232,6 @@
 
         $tableWrap.dataset.opp = String(others.length);
 
-        const isMobile = window.matchMedia("(max-width: 520px)").matches;
         const oppSlots = opponentSlots(others.length);
 
         if (
@@ -2271,31 +2276,33 @@
               : "";
 
           seat.innerHTML = `
-                      <div class="seatTop">
-                        <div class="seatName">${p.name}</div>
-                        <div style="display:flex; gap:6px; align-items:center;">${hostTag}${turnTag}</div>
-                      </div>
-                      <div class="seatMeta">
-                        <span class="muted">Coins</span>
-                        <span class="coinStack">🪙 <b>${p.coins ?? 0}</b></span>
-                      </div>
-                      <div class="infs">
-                        ${(p.influence || [])
-                          .map((c) => {
-                            if (c.revealed) {
-                              const src = ROLE_CARD_IMG[c.role];
-                              return `<div class="infCard revealed" data-role="${c.role}" title="${c.role}">
-                                <img src="${src}" alt="${c.role}">
-                              </div>`;
-                            }
+                            <div class="seatTop">
+                              <div class="seatName">${p.name}</div>
+                              <div style="display:flex; gap:6px; align-items:center;">${hostTag}${turnTag}</div>
+                            </div>
+                            <div class="seatMeta">
+                              <span class="muted">Coins</span>
+                              <span class="coinStack">🪙 <b>${
+                                p.coins ?? 0
+                              }</b></span>
+                            </div>
+                            <div class="infs">
+                              ${(p.influence || [])
+                                .map((c) => {
+                                  if (c.revealed) {
+                                    const src = ROLE_CARD_IMG[c.role];
+                                    return `<div class="infCard revealed" data-role="${c.role}" title="${c.role}">
+                                      <img src="${src}" alt="${c.role}">
+                                    </div>`;
+                                  }
 
-                            return `<div class="infCard">
-                              <img src="${ROLE_CARD_IMG.__BACK__}" alt="Hidden card">
-                            </div>`;
-                          })
-                          .join("")}
-                      </div>
-                    `;
+                                  return `<div class="infCard">
+                                    <img src="${ROLE_CARD_IMG.__BACK__}" alt="Hidden card">
+                                  </div>`;
+                                })
+                                .join("")}
+                            </div>
+                          `;
 
           seat.addEventListener("click", (ev) => {
             const card = ev.target.closest(".infCard");
@@ -2318,10 +2325,16 @@
         you.className = "seat you";
         you.dataset.pid = myId;
 
-        if (isMobile) {
-          you.style.cssText = seatStyleFromPos(clampPos(presetYouSlot()), 1);
+        if (isMobile()) {
+          you.style.cssText = seatStyleFromPos(
+            clampPos(presetYouSlot(others.length)),
+            1
+          );
         } else {
-          you.style.cssText = seatStyleFromPos(youSlotEllipse(), 1);
+          you.style.cssText = seatStyleFromPos(
+            youSlotEllipse(others.length),
+            1
+          );
         }
 
         const aliveCards = (me?.influence || []).filter(
@@ -2335,42 +2348,44 @@
           ? "Your turn"
           : "Waiting";
         you.innerHTML = `
-                    <div class="seatTop">
-                      <div class="seatName">${me?.name || "You"}</div>
-                      <span class="tag">${turnText}</span>
-                    </div>
-                    <div class="youMetaLine">
-                      <span class="coinStack">🪙 <b>${me?.coins ?? 0}</b></span>
-                      <span class="muted">Influence: <b>${aliveCards}</b></span>
-                      <span class="muted">Target: <b>${
-                        selectedTargetId
-                          ? playerNameById(state, selectedTargetId)
-                          : "—"
-                      }</b></span>
-                    </div>
-                    <div class="infs">
-                      ${(me?.influence || [])
-                        .map((c) => {
-                          const isVisible = !isLobby || c.revealed;
-                          const src = isVisible
-                            ? ROLE_CARD_IMG[c.role]
-                            : ROLE_CARD_IMG.__BACK__;
+                          <div class="seatTop">
+                            <div class="seatName">${me?.name || "You"}</div>
+                            <span class="tag">${turnText}</span>
+                          </div>
+                          <div class="youMetaLine">
+                            <span class="coinStack">🪙 <b>${
+                              me?.coins ?? 0
+                            }</b></span>
+                            <span class="muted">Influence: <b>${aliveCards}</b></span>
+                            <span class="muted">Target: <b>${
+                              selectedTargetId
+                                ? playerNameById(state, selectedTargetId)
+                                : "—"
+                            }</b></span>
+                          </div>
+                          <div class="infs">
+                            ${(me?.influence || [])
+                              .map((c) => {
+                                const isVisible = !isLobby || c.revealed;
+                                const src = isVisible
+                                  ? ROLE_CARD_IMG[c.role]
+                                  : ROLE_CARD_IMG.__BACK__;
 
-                          const cls = c.revealed
-                            ? "infCard revealed"
-                            : "infCard";
+                                const cls = c.revealed
+                                  ? "infCard revealed"
+                                  : "infCard";
 
-                          return `<div class="${cls}" ${
-                            isVisible
-                              ? `data-role="${c.role}" title="${c.role}"`
-                              : ""
-                          }>
-                            <img src="${src}" alt="Influence card">
-                          </div>`;
-                        })
-                        .join("")}
-                    </div>
-                  `;
+                                return `<div class="${cls}" ${
+                                  isVisible
+                                    ? `data-role="${c.role}" title="${c.role}"`
+                                    : ""
+                                }>
+                                  <img src="${src}" alt="Influence card">
+                                </div>`;
+                              })
+                              .join("")}
+                          </div>
+                        `;
         $seats.appendChild(you);
 
         $log.textContent = (state.log || []).join("\n");
@@ -2498,6 +2513,8 @@
 
         if (pending.type === "loseInfluence" && pending.playerId === myId) {
           const me = myPlayer(state);
+          if (!me) return;
+
           $loseButtons.innerHTML = "";
 
           (me.influence || []).forEach((c, i) => {
