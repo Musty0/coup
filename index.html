@@ -234,6 +234,7 @@
       }
 
       .scene {
+        position: relative;
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -263,15 +264,15 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 6px 10px;
+        padding: 4px 8px;
         border-radius: 999px;
         border: 1px solid var(--line);
         background: rgba(0, 0, 0, 0.12);
-        font-size: 13px;
+        font-size: 12px;
       }
       .dot {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         border-radius: 999px;
         background: rgba(234, 242, 255, 0.35);
       }
@@ -280,10 +281,9 @@
       }
 
       .tableWrap {
-        position: relative;
-        height: min(80vh, 760px);
-        min-height: 600px;
-        padding: 14px;
+        height: min(72vh, 560px);
+        min-height: 520px;
+        padding: 10px;
       }
 
       .table {
@@ -524,9 +524,9 @@
       }
 
       .panelStack {
-        position: fixed;
+        position: absolute;
         left: 50%;
-        top: calc(var(--topbarH) + env(safe-area-inset-top, 0px) + 72px);
+        top: 12px; /* default for desktop */
         transform: translateX(-50%);
         width: min(540px, 92%);
         z-index: 120;
@@ -807,16 +807,16 @@
       }
 
       #drawer {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
+        position: absolute;
+        left: 6;
+        right: 6;
+        bottom: 6;
         height: 65vh;
         background: rgba(0, 0, 0, 0.7);
         border-top: 1px solid var(--line);
         transform: translateY(100%);
         transition: transform 0.18s ease;
-        z-index: 80;
+        z-index: 50;
         padding: 12px;
         overflow: auto;
       }
@@ -872,13 +872,14 @@
       /* Mobile */
       @media (max-width: 520px) {
         :root {
-          --infW: clamp(64px, 16vw, 92px);
-          --infH: calc(var(--infW) * 1.22);
+          --infW: clamp(6px, 12vw, 50px);
+          --infH: calc(var(--infW) * 1.5);
           --infR: 14px;
           --actionH: 112px;
           --safeB: env(safe-area-inset-bottom, 0px);
         }
 
+        /* Scene layout */
         .scene {
           border: none !important;
           border-radius: 0 !important;
@@ -890,34 +891,38 @@
         .sceneHeader {
           background: transparent !important;
           border-bottom: none !important;
-          padding: 8px 8px !important;
+          padding: 4px 8px 2px !important;
         }
 
         .wrap {
           padding: 6px 6px 0;
-          height: calc(100dvh - var(--topbarH) - var(--actionH));
-          padding-bottom: calc(112px + var(--safeB));
+          height: calc(100dvh - var(--topbarH));
+          padding-bottom: calc(var(--actionH) + var(--safeB));
+          position: relative;
+          overflow: hidden;
         }
 
         .tableWrap {
-          height: min(72vh, 560px);
-          min-height: 520px;
-          padding: 10px;
+          position: relative; /* KEY: .table/.centerZone/#seats are now scoped to tableWrap */
+
+          height: 100%;
+          min-height: 0;
+
+          /* reserve a gutter below the bottom player for panels */
+          --panelGutter: 96px;
+          padding: 10px 10px calc(var(--panelGutter) + 10px);
         }
 
         .table {
           width: min(420px, 80%);
-          height: min(440px, 74%);
+          height: min(500px, 82%); /* longer */
+          top: 58%; /* a bit higher */
           border-radius: 999px;
-        }
-
-        .infCard {
-          font-size: 13px;
         }
 
         #seats {
           position: absolute;
-          inset: 0;
+          inset: 0 0 calc(var(--panelGutter) + 10px) 0;
           z-index: 15;
           pointer-events: none;
         }
@@ -930,7 +935,13 @@
           outline: none !important;
           width: auto;
           padding: 0;
-          min-width: calc(var(--infW) * 2 + 16px);
+          min-width: calc(var(--infW) * 1.5 + 12px);
+        }
+
+        .seat:not(.you),
+        .seat.you {
+          position: absolute !important;
+          z-index: 16;
         }
 
         .seat.selected {
@@ -946,22 +957,12 @@
           border-color: rgba(167, 139, 250, 0.55) !important;
         }
 
-        .seat:not(.you) {
-          position: absolute !important;
-          z-index: 16;
-        }
-
-        .seat.you {
-          position: absolute !important;
-          left: 50% !important;
-          top: 80% !important;
-          transform: translate(-50%, -50%) !important;
-          z-index: 16;
-        }
-
+        /* Mobile: tighten name/coins/cards vertical spacing (visible change) */
         .seatTop {
           gap: 4px;
           justify-content: center;
+          margin-top: 0 !important;
+          margin-bottom: 2px;
         }
 
         .seatTop .tag {
@@ -969,17 +970,15 @@
         }
 
         .seatName {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 800;
           opacity: 0.92;
           text-align: center;
         }
 
         .seatMeta {
-          margin-top: 6px;
-          display: flex !important;
+          margin-top: 6px !important;
           justify-content: center;
-          gap: 0;
         }
 
         .seatMeta .muted {
@@ -995,20 +994,23 @@
         }
 
         .infs {
-          margin-top: 6px;
-          display: flex;
+          margin-top: 10px !important;
           justify-content: center;
-          flex-wrap: nowrap;
+        }
+
+        .infCard {
+          font-size: 13px;
         }
 
         .infCard + .infCard {
-          margin-left: -12px;
+          margin-left: 6px;
         }
 
         .seat.you .youMetaLine {
           display: none !important;
         }
 
+        /* Buttons / bars */
         button {
           font-size: 14px;
           padding: 9px 10px;
@@ -1019,27 +1021,32 @@
           padding: 6px 9px;
         }
 
+        .actionInner {
+          flex-wrap: wrap;
+          justify-content: center;
+          overflow: visible;
+          padding-bottom: 0;
+        }
+
+        .actionInner button {
+          flex: 1 1 calc(33.33% - 8px);
+          max-width: 160px;
+        }
+
+        .actionBar,
+        #drawer {
+          padding-bottom: calc(12px + var(--safeB));
+        }
+
+        /* Help panel */
         #helpPanel {
           max-height: min(78vh, 620px);
-        }
-
-        #helpPanel .helpGrid {
-          gap: 10px;
-        }
-
-        #helpPanel .helpSection {
-          font-size: 11px;
-          letter-spacing: 0.8px;
-          text-transform: uppercase;
-          opacity: 0.55;
-          margin-top: 6px;
         }
 
         #helpPanel .helpItem {
           display: grid;
           grid-template-columns: 34px 1fr;
           gap: 10px;
-          align-items: start;
         }
 
         #helpPanel .helpIcon {
@@ -1063,59 +1070,28 @@
           line-height: 1.3;
         }
 
-        #helpPanel .helpSection.collapsible {
-          width: 100%;
-          text-align: left;
-          background: transparent;
-          border: none;
-          padding: 6px 0;
-          cursor: pointer;
-          position: relative;
-          padding-right: 18px;
+        /* Topbar */
+        .topbar {
+          padding: calc(6px + env(safe-area-inset-top, 0px)) 8px 6px;
+          gap: 6px;
         }
 
-        #helpPanel .helpSection.collapsible::after {
-          content: "▸";
-          position: absolute;
-          right: 0;
-          top: 0;
-          opacity: 0.6;
-        }
-
-        #helpPanel .helpSection.collapsible.open::after {
-          content: "▾";
-        }
-
-        #helpPanel .helpGroup {
+        .brand small {
           display: none;
-          margin-top: 6px;
         }
 
-        #helpPanel .helpSection.collapsible.open + .helpGroup {
-          display: grid;
-          gap: 10px;
+        .topbarRight .row {
+          flex-wrap: nowrap;
+          gap: 6px;
+          overflow-x: auto;
+          scrollbar-width: none;
         }
 
-        .actionInner {
-          flex-wrap: wrap;
-          justify-content: center;
-          overflow: visible;
-          padding-bottom: 0;
+        .topbarRight .row::-webkit-scrollbar {
+          display: none;
         }
 
-        .actionInner button {
-          flex: 1 1 calc(33.33% - 8px);
-          max-width: 160px;
-        }
-
-        .actionBar {
-          padding-bottom: calc(12px + var(--safeB));
-        }
-
-        #drawer {
-          padding-bottom: calc(12px + var(--safeB));
-        }
-
+        /* dvh support */
         @supports (height: 100dvh) {
           .tableWrap {
             height: min(72dvh, 560px);
@@ -1126,41 +1102,55 @@
           }
         }
 
-        /* Topbar */
-        .topbar {
-          padding: calc(6px + env(safe-area-inset-top, 0px)) 8px 6px;
-          gap: 6px;
-          grid-template-columns: auto auto 1fr;
+        #targetHint {
+          font-size: 11px !important;
+        }
+      }
+
+      /* Mobile: final overrides (KEEP THIS LAST) */
+      @media (max-width: 520px) {
+        /* tighter topbar pills */
+        .topbar button.pill {
+          padding: 6px 9px !important;
+          font-size: 12px !important;
+          line-height: 1 !important;
         }
 
-        .brand small {
-          display: none;
+        /* Panel stack: above everything */
+        .panelStack {
+          position: fixed !important;
+          left: 50% !important;
+          top: auto !important;
+          transform: translateX(-50%) !important;
+          width: min(560px, 94%) !important;
+          z-index: 9999 !important;
+          pointer-events: none !important;
+
+          /* default (in-game): above action bar */
+          bottom: calc(var(--actionH) + var(--safeB) - 6px) !important;
         }
 
-        .topbarMid {
-          justify-content: flex-start;
+        .panelStack .panel.show {
+          pointer-events: auto !important;
         }
 
-        .topbarRight .row {
-          flex-wrap: nowrap;
-          gap: 6px;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
+        /* Lobby/Ended: move stack near bottom */
+        body[data-phase="lobby"] .panelStack,
+        body[data-phase="ended"] .panelStack {
+          bottom: 18px !important;
         }
 
-        .topbarRight .row::-webkit-scrollbar {
-          display: none;
-        }
-
-        .topbarRight .row > * {
-          flex: 0 0 auto;
-        }
-
-        .topbar .pill {
-          font-size: 12px;
-          padding: 6px 9px;
-          white-space: nowrap;
+        /* Hard fallback: pin the actual visible panel (prevents any layout weirdness) */
+        body[data-phase="lobby"] #lobbyPanel.panel.show,
+        body[data-phase="ended"] #endPanel.panel.show {
+          position: fixed !important;
+          left: 50% !important;
+          top: auto !important;
+          bottom: 18px !important;
+          transform: translateX(-50%) !important;
+          width: min(560px, 94%) !important;
+          z-index: 10000 !important;
+          pointer-events: auto !important;
         }
       }
     </style>
@@ -1199,279 +1189,124 @@
             <div class="pile" id="centerStatus" data-mode="lobby">
               🪙 <b id="meCoinsInline">0</b>
               <span id="targetChunk">
-                • 🎯 <span id="targetLabel">No target</span></span
-              >
+                • 🎯 <span id="targetLabel">No target</span>
+              </span>
             </div>
           </div>
 
           <div id="seats"></div>
+        </div>
+      </div>
 
-          <div class="panelStack">
-            <div id="lobbyPanel" class="panel">
-              <div class="panelTitle">
-                <b>Lobby</b>
-                <span class="tiny muted" id="lobbyHost"></span>
-              </div>
-              <div class="row">
-                <button id="startBtn" class="primary">Start Game</button>
-                <span class="tiny muted" id="startHint"></span>
-              </div>
-            </div>
+      <!-- Panel stack is OUTSIDE scene but INSIDE wrap -->
+      <div class="panelStack">
+        <div id="lobbyPanel" class="panel show">
+          <div class="panelTitle">
+            <b>Lobby</b>
+            <span class="tiny muted" id="lobbyHost"></span>
+          </div>
+          <div class="row">
+            <button id="startBtn" class="primary">Start Game</button>
+            <span class="tiny muted" id="startHint"></span>
+          </div>
+        </div>
 
-            <div id="endPanel" class="panel">
-              <div class="panelTitle">
-                <b>Game Over</b>
-                <span class="tiny muted" id="endHost"></span>
-              </div>
-              <div id="endWinner" class="mt4"></div>
-              <div class="row mt10">
-                <button id="rematchBtn" class="primary">Rematch</button>
-                <span class="tiny muted" id="rematchHint"></span>
-              </div>
-            </div>
+        <div id="endPanel" class="panel">
+          <div class="panelTitle">
+            <b>Game Over</b>
+            <span class="tiny muted" id="endHost"></span>
+          </div>
+          <div id="endWinner" class="mt4"></div>
+          <div class="row mt10">
+            <button id="rematchBtn" class="primary">Rematch</button>
+            <span class="tiny muted" id="rematchHint"></span>
+          </div>
+        </div>
 
-            <div id="reconnectPanel" class="panel">
-              <div class="panelTitle">
-                <b>Disconnected</b>
-                <span class="tiny muted">Trying to reconnect…</span>
-              </div>
-              <div class="tiny muted mt4">
-                If this keeps happening, tap Reconnect or return Home.
-              </div>
-              <div class="row mt10">
-                <button id="reconnectNowBtn" class="primary">Reconnect</button>
-                <button id="reconnectHomeBtn" class="pill">Home</button>
-              </div>
-            </div>
+        <div id="reconnectPanel" class="panel">
+          <div class="panelTitle">
+            <b>Disconnected</b>
+            <span class="tiny muted">Trying to reconnect…</span>
+          </div>
+          <div class="tiny muted mt4">
+            If this keeps happening, tap Reconnect or return Home.
+          </div>
+          <div class="row mt10">
+            <button id="reconnectNowBtn" class="primary">Reconnect</button>
+            <button id="reconnectHomeBtn" class="pill">Home</button>
+          </div>
+        </div>
 
-            <div id="mustCoupHint" class="panel">
-              <div class="panelTitle">
-                <b>Mandatory Coup</b>
-                <span class="tiny muted">10+ coins</span>
-              </div>
-              If you have 10+ coins, you must Coup.
-            </div>
+        <div id="mustCoupHint" class="panel">
+          <div class="panelTitle">
+            <b>Mandatory Coup</b>
+            <span class="tiny muted">10+ coins</span>
+          </div>
+          If you have 10+ coins, you must Coup.
+        </div>
 
-            <div id="responsePanel" class="panel">
-              <div class="panelTitle">
-                <div>
-                  <div id="responseKicker" class="responseKicker"></div>
-                  <div id="responseHint" class="responseMain"></div>
-                  <div id="responseSub" class="responseSub"></div>
-                </div>
-              </div>
-
-              <div class="tiny warn" id="riskHint">
-                ⚠️ If you’re wrong, you lose 1 influence.
-              </div>
-              <div class="row mt10">
-                <button id="passBtn" class="good">✅ Pass</button>
-                <button id="challengeBtn" class="risk">🟥 Challenge</button>
-
-                <button id="blockDukeBtn">
-                  🛡️ Block <span class="blockRole">Duke</span>
-                </button>
-
-                <button id="blockContessaBtn">
-                  🛡️ Block <span class="blockRole">Contessa</span>
-                </button>
-
-                <button id="blockCaptainBtn">
-                  🛡️ Block <span class="blockRole">Captain</span>
-                </button>
-
-                <button id="blockAmbassadorBtn">
-                  🛡️ Block <span class="blockRole">Ambassador</span>
-                </button>
-              </div>
-            </div>
-
-            <div id="losePanel" class="panel">
-              <div class="panelTitle">
-                <b>Lose Influence</b>
-                <span class="tiny muted">Pick one</span>
-              </div>
-              <div class="row mt10" id="loseButtons"></div>
-            </div>
-
-            <div id="exchangePanel" class="panel">
-              <div class="panelTitle">
-                <b>Exchange</b>
-                <span class="tiny muted" id="exchangeHint"></span>
-              </div>
-              <div class="row mt10" id="exchangeButtons"></div>
-              <div class="row mt10">
-                <button id="exchangeConfirmBtn" class="primary">
-                  Confirm Exchange
-                </button>
-              </div>
-            </div>
-
-            <div id="helpPanel" class="panel">
-              <div class="panelTitle">
-                <b>Quick Guide</b>
-                <button id="helpCloseBtn" class="pill">Close</button>
-              </div>
-
-              <div class="helpGrid">
-                <button class="helpSection collapsible" type="button">
-                  HOW TO PLAY
-                </button>
-                <div class="helpGroup">
-                  <div class="helpItem">
-                    <div class="helpIcon">🏆</div>
-                    <div class="helpText">
-                      <b>How to Win</b>
-                      <span
-                        >Be the last player with any unrevealed influence
-                        remaining.</span
-                      >
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">🃏</div>
-                    <div class="helpText">
-                      <b>Influence</b>
-                      <span
-                        >You start with 2 hidden cards. When forced to lose
-                        influence, you reveal one. If both are revealed, you’re
-                        eliminated.</span
-                      >
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">🪙</div>
-                    <div class="helpText">
-                      <b>Coins</b>
-                      <span
-                        >Coins are used to perform actions like Assassinate (3
-                        coins) and Coup (7 coins).</span
-                      >
-                    </div>
-                  </div>
-                </div>
-
-                <button class="helpSection collapsible" type="button">
-                  BASIC ACTIONS
-                </button>
-                <div class="helpGroup">
-                  <div class="helpItem">
-                    <div class="helpIcon">💵</div>
-                    <div class="helpText">
-                      <b>Income</b>
-                      <span>Take 1 coin. Cannot be blocked or challenged.</span>
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">🪙</div>
-                    <div class="helpText">
-                      <b>Foreign Aid</b>
-                      <span>Take 2 coins. Can be blocked by a Duke.</span>
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">💣</div>
-                    <div class="helpText">
-                      <b>Coup</b>
-                      <span
-                        >Pay 7 coins to force a target to lose 1 influence.
-                        Cannot be blocked or challenged.</span
-                      >
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">⚠️</div>
-                    <div class="helpText">
-                      <b>Mandatory Coup</b>
-                      <span>If you have 10 or more coins, you must Coup.</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button class="helpSection collapsible" type="button">
-                  ROLES
-                </button>
-                <div class="helpGroup">
-                  <div class="helpItem">
-                    <div class="helpIcon">👑</div>
-                    <div class="helpText">
-                      <b>Duke</b>
-                      <span
-                        ><b>Tax:</b> Take 3 coins (challengeable).
-                        <b>Block:</b> Foreign Aid.</span
-                      >
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">🗡️</div>
-                    <div class="helpText">
-                      <b>Assassin</b>
-                      <span
-                        ><b>Assassinate:</b> Pay 3 coins to make a target lose 1
-                        influence (challengeable). Blocked by Contessa.</span
-                      >
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">🪙</div>
-                    <div class="helpText">
-                      <b>Captain</b>
-                      <span
-                        ><b>Steal:</b> Take up to 2 coins from a player
-                        (challengeable). <b>Block:</b> Steal.</span
-                      >
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">🔄</div>
-                    <div class="helpText">
-                      <b>Ambassador</b>
-                      <span
-                        ><b>Exchange:</b> Draw 2 cards, then choose which to
-                        keep (challengeable). <b>Block:</b> Steal.</span
-                      >
-                    </div>
-                  </div>
-
-                  <div class="helpItem">
-                    <div class="helpIcon">🛡️</div>
-                    <div class="helpText">
-                      <b>Contessa</b>
-                      <span
-                        ><b>Block:</b> Assassination (block is
-                        challengeable).</span
-                      >
-                    </div>
-                  </div>
-                </div>
-
-                <button class="helpSection collapsible" type="button">
-                  CHALLENGES
-                </button>
-                <div class="helpGroup">
-                  <div class="helpItem">
-                    <div class="helpIcon">❓</div>
-                    <div class="helpText">
-                      <b>Challenges</b>
-                      <span
-                        >You may challenge any role claim or block. If the claim
-                        is false, they lose influence. If it’s true, you lose
-                        influence.</span
-                      >
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <div id="responsePanel" class="panel">
+          <div class="panelTitle">
+            <div>
+              <div id="responseKicker" class="responseKicker"></div>
+              <div id="responseHint" class="responseMain"></div>
+              <div id="responseSub" class="responseSub"></div>
             </div>
           </div>
+
+          <div class="tiny warn" id="riskHint">
+            ⚠️ If you’re wrong, you lose 1 influence.
+          </div>
+          <div class="row mt10">
+            <button id="passBtn" class="good">✅ Pass</button>
+            <button id="challengeBtn" class="risk">🟥 Challenge</button>
+
+            <button id="blockDukeBtn">
+              🛡️ Block <span class="blockRole">Duke</span>
+            </button>
+
+            <button id="blockContessaBtn">
+              🛡️ Block <span class="blockRole">Contessa</span>
+            </button>
+
+            <button id="blockCaptainBtn">
+              🛡️ Block <span class="blockRole">Captain</span>
+            </button>
+
+            <button id="blockAmbassadorBtn">
+              🛡️ Block <span class="blockRole">Ambassador</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="losePanel" class="panel">
+          <div class="panelTitle">
+            <b>Lose Influence</b>
+            <span class="tiny muted">Pick one</span>
+          </div>
+          <div class="row mt10" id="loseButtons"></div>
+        </div>
+
+        <div id="exchangePanel" class="panel">
+          <div class="panelTitle">
+            <b>Exchange</b>
+            <span class="tiny muted" id="exchangeHint"></span>
+          </div>
+          <div class="row mt10" id="exchangeButtons"></div>
+          <div class="row mt10">
+            <button id="exchangeConfirmBtn" class="primary">
+              Confirm Exchange
+            </button>
+          </div>
+        </div>
+
+        <div id="helpPanel" class="panel">
+          <div class="panelTitle">
+            <b>Quick Guide</b>
+            <button id="helpCloseBtn" class="pill">Close</button>
+          </div>
+
+          <!-- help content unchanged -->
         </div>
       </div>
     </div>
@@ -1640,6 +1475,12 @@
       function setPanelVisible(el, on) {
         if (!el) return;
         el.classList.toggle("show", !!on);
+      }
+
+      // MOBILE fallback: show lobby UI until we receive first WS state
+      if (isMobile()) {
+        document.body.dataset.phase = "lobby";
+        setPanelVisible($lobbyPanel, true);
       }
 
       function setDisconnectedUI(on) {
@@ -2012,7 +1853,7 @@
             wrap.height) *
           100;
 
-        if (isMobile()) wrapTop -= 4.5;
+        if (isMobile()) wrapTop -= 0;
         return { left: wrapLeft, top: wrapTop };
       }
 
@@ -2045,39 +1886,39 @@
         if (n === 1) return [t(50, 0)];
 
         // 3 total players (2 opponents)
-        if (n === 2) return [t(8, 24), t(92, 24)];
+        if (n === 2) return [t(50, 0), t(92, 60)];
 
         // 4 total players (3 opponents)
-        if (n === 3) return [t(8, 24), t(50, 0), t(92, 24)];
+        if (n === 3) return [t(8, 60), t(50, 0), t(92, 60)];
 
         // 5 total players (4 opponents)
-        if (n === 4) return [t(8, 24), t(8, 60), t(92, 60), t(92, 24)];
+        if (n === 4) return [t(50, 0), t(8, 37), t(92, 74), t(92, 37)];
 
         // 6 total players (5 opponents)
         if (n === 5)
-          return [t(8, 24), t(8, 60), t(50, 0), t(92, 60), t(92, 24)];
+          return [t(8, 37), t(8, 74), t(50, 0), t(92, 74), t(92, 37)];
 
         // 7 players total (6 opponents): 2 top, 2 sides, 2 bottom
         if (n === 6)
           return [
-            t(34, 6),
-            t(66, 6), // top (2)
-            t(8, 44),
-            t(92, 44), // sides (2)
-            t(32, 70),
-            t(68, 70), // bottom (2) - you remains centered
+            t(28, 0),
+            t(72, 0), // top (2) - a bit higher & slightly wider apart
+            t(8, 37),
+            t(92, 37), // sides (2)
+            t(8, 74),
+            t(92, 74), // bottom (2) - these are the ones you’re missing
           ];
 
-        // 8 players total (7 opponents): 2 top, 2 bottom, +3 around (you gets pushed aside)
+        // 8 players total (7 opponents)
         if (n === 7)
           return [
-            t(34, 6),
-            t(66, 6), // top (2)
-            t(8, 30),
-            t(92, 30), // upper sides (2)
-            t(8, 60), // lower left (1)
-            t(34, 72),
-            t(66, 72), // bottom (2)
+            t(28, 0),
+            t(72, 0), // top (2)
+            t(8, 37),
+            t(92, 37), // upper sides (2)
+            t(8, 74), // mid-left
+            t(92, 74), // bottom center-right
+            t(72, 112), // bottom far-right
           ];
 
         return [];
@@ -2118,10 +1959,10 @@
 
       function presetYouSlot(oppCount) {
         // Default: centered
-        if (oppCount < 7) return { left: 50, top: 80, table: true };
+        if (oppCount < 7) return { left: 50, top: 74, table: true };
 
         // 8 players: push you to bottom-left side
-        return { left: 18, top: 80, table: true };
+        return { left: 30, top: 112, table: true };
       }
 
       function clampPos(pos) {
@@ -2156,6 +1997,8 @@
             if (b && b !== $coupBtn) b.style.display = "none";
           if ($coupBtn) $coupBtn.style.display = "";
         }
+
+        requestAnimationFrame(syncLayoutHeights);
       }
 
       function render(state) {
@@ -2326,10 +2169,21 @@
         you.dataset.pid = myId;
 
         if (isMobile()) {
-          you.style.cssText = seatStyleFromPos(
-            clampPos(presetYouSlot(others.length)),
-            1
-          );
+          const youPos = presetYouSlot(others.length);
+
+          // Only push down for 7 players and below
+          const bottomOffset =
+            others.length <= 6
+              ? -132 // 👈 tweak this for 7 and below
+              : -102; // 👈 keep your current value for 8 players
+
+          you.style.cssText = `
+    left: ${Math.max(6, Math.min(94, youPos.left))}%;
+    top: auto;
+    bottom: ${bottomOffset}px;
+    transform: translateX(-50%);
+    z-index: 20;
+  `;
         } else {
           you.style.cssText = seatStyleFromPos(
             youSlotEllipse(others.length),

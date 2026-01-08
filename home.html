@@ -174,6 +174,80 @@
         color: rgba(234, 242, 255, 0.55);
       }
 
+      /* Rules modal (mobile-first) */
+      .modalBackdrop {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 14px;
+        background: rgba(0, 0, 0, 0.55);
+      }
+
+      .modalBackdrop.show {
+        display: flex;
+      }
+
+      .modal {
+        width: min(520px, 100%);
+        max-height: min(78vh, 620px);
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        box-shadow: var(--shadow);
+        padding: 14px;
+      }
+
+      .modalTop {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .rulesGrid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .ruleItem {
+        display: grid;
+        grid-template-columns: 36px 1fr;
+        gap: 10px;
+        align-items: start;
+        padding: 10px;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .ruleIcon {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        font-size: 18px;
+      }
+
+      .ruleItem b {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 2px;
+      }
+
+      .ruleItem span {
+        font-size: 12px;
+        opacity: 0.82;
+        line-height: 1.3;
+      }
+
       /* Desktop: keep centered but slightly roomier */
       @media (min-width: 700px) {
         .panel {
@@ -254,6 +328,59 @@
         </div>
       </div>
     </div>
+    <div id="rulesBackdrop" class="modalBackdrop" aria-hidden="true">
+      <div
+        id="rulesModal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Rules"
+      >
+        <div class="modalTop">
+          <b>Quick Rules</b>
+          <button id="rulesCloseBtn" class="ghostLink" type="button">
+            Close
+          </button>
+        </div>
+
+        <div class="rulesGrid">
+          <div class="ruleItem">
+            <div class="ruleIcon">🏆</div>
+            <div><b>Win</b><span>Be last with any hidden influence.</span></div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">🃏</div>
+            <div>
+              <b>Influence</b
+              ><span
+                >Start with 2 cards. Reveal one when you lose influence.</span
+              >
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">🪙</div>
+            <div>
+              <b>Coins</b><span>Coup costs 7. Assassinate costs 3.</span>
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">⚠️</div>
+            <div>
+              <b>10+ Coins</b><span>If you have 10+, you must Coup.</span>
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">❓</div>
+            <div>
+              <b>Challenges</b
+              ><span
+                >Challenge role claims/blocks. Loser reveals 1 influence.</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script>
       const $name = document.getElementById("name");
@@ -305,6 +432,12 @@
         if ($code.value !== v) $code.value = v;
       });
 
+      // Keep name max 10 (mobile paste/autofill safe)
+      $name.addEventListener("input", () => {
+        const v = sanitizeName($name.value);
+        if ($name.value !== v) $name.value = v;
+      });
+
       // Enter key: join quickly
       $code.addEventListener("keydown", (e) => {
         if (e.key === "Enter") goToGame($code.value);
@@ -329,9 +462,30 @@
         goToGame($code.value);
       };
 
-      document.getElementById("rulesBtn").onclick = () => {
-        alert("Rules UI coming next — we can reuse your in-game Help panel.");
-      };
+      const $rulesBackdrop = document.getElementById("rulesBackdrop");
+      const $rulesCloseBtn = document.getElementById("rulesCloseBtn");
+      const $rulesBtn = document.getElementById("rulesBtn");
+
+      function openRules() {
+        if (!$rulesBackdrop) return;
+        $rulesBackdrop.classList.add("show");
+        $rulesBackdrop.setAttribute("aria-hidden", "false");
+      }
+
+      function closeRules() {
+        if (!$rulesBackdrop) return;
+        $rulesBackdrop.classList.remove("show");
+        $rulesBackdrop.setAttribute("aria-hidden", "true");
+      }
+
+      if ($rulesBtn) $rulesBtn.onclick = openRules;
+      if ($rulesCloseBtn) $rulesCloseBtn.onclick = closeRules;
+
+      if ($rulesBackdrop) {
+        $rulesBackdrop.addEventListener("click", (e) => {
+          if (e.target === $rulesBackdrop) closeRules();
+        });
+      }
 
       // Invite link support: home.html?room=ABCD
       const params = new URLSearchParams(location.search);
@@ -353,5 +507,59 @@
         sessionStorage.removeItem("coup_left");
       }*/
     </script>
+    <div id="rulesBackdrop" class="modalBackdrop" aria-hidden="true">
+      <div
+        id="rulesModal"
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Rules"
+      >
+        <div class="modalTop">
+          <b>Quick Rules</b>
+          <button id="rulesCloseBtn" class="ghostLink" type="button">
+            Close
+          </button>
+        </div>
+
+        <div class="rulesGrid">
+          <div class="ruleItem">
+            <div class="ruleIcon">🏆</div>
+            <div><b>Win</b><span>Be last with any hidden influence.</span></div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">🃏</div>
+            <div>
+              <b>Influence</b
+              ><span
+                >Start with 2 cards. Reveal one when you lose influence.</span
+              >
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">🪙</div>
+            <div>
+              <b>Coins</b
+              ><span>Fuel actions. Coup costs 7. Assassinate costs 3.</span>
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">⚠️</div>
+            <div>
+              <b>10+ Coins</b><span>If you have 10+, you must Coup.</span>
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">❓</div>
+            <div>
+              <b>Challenges</b
+              ><span
+                >Challenge role claims/blocks. Loser reveals 1 influence.</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
