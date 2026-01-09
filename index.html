@@ -1193,6 +1193,15 @@
           font-size: 18px;
           border-radius: 16px;
         }
+
+        /* Allow tapping seats behind the action bar (only buttons capture taps) */
+        .actionBar {
+          pointer-events: none !important;
+        }
+        .actionBar .actionInner,
+        .actionBar .actionInner button {
+          pointer-events: auto !important;
+        }
       }
     </style>
   </head>
