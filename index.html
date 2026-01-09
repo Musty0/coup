@@ -1152,6 +1152,47 @@
           z-index: 10000 !important;
           pointer-events: auto !important;
         }
+
+        /* Action buttons polish (mobile) */
+        .actionBar .actionInner button {
+          border-radius: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background: linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.1),
+            rgba(255, 255, 255, 0.05)
+          );
+          font-weight: 800;
+          letter-spacing: 0.2px;
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.32);
+        }
+
+        .actionBar .actionInner button:active {
+          transform: translateY(1px) scale(0.99);
+        }
+
+        /* Make Coup pop more */
+        .actionBar .actionInner #coupBtn {
+          border-color: rgba(251, 113, 133, 0.4);
+          background: linear-gradient(
+            180deg,
+            rgba(251, 113, 133, 0.22),
+            rgba(255, 255, 255, 0.05)
+          );
+        }
+
+        /* Mandatory coup: BIG single button */
+        .actionBar.onlyCoup .actionInner {
+          justify-content: center;
+        }
+
+        .actionBar.onlyCoup .actionInner #coupBtn {
+          flex: 1 1 100%;
+          max-width: none;
+          min-height: 56px;
+          font-size: 18px;
+          border-radius: 16px;
+        }
       }
     </style>
   </head>
@@ -1339,7 +1380,7 @@
         <div class="muted tiny" style="margin-bottom: 10px">
           This updates instantly for everyone.
         </div>
-        <input id="nameInput" maxlength="10" autocomplete="off" />
+        <input id="nameInput" maxlength="8" autocomplete="off" />
         <div class="row mt10 rowEnd">
           <button id="nameCancelBtn" class="pill">Cancel</button>
           <button id="nameSaveBtn" class="primary">Save</button>
@@ -1740,7 +1781,7 @@
         if (e.target === $nameModalBackdrop) closeNameModal();
       });
       $nameSaveBtn.onclick = () => {
-        const val = ($nameInput.value || "").trim().slice(0, 10);
+        const val = ($nameInput.value || "").trim().slice(0, 8);
         if (!val) return;
         myName = val;
         sessionStorage.setItem("coup_name", myName);
@@ -1974,6 +2015,7 @@
 
       function setActionBarState({ showBar, showOnlyCoup }) {
         if ($actionBar) $actionBar.style.display = showBar ? "" : "none";
+        if ($actionBar) $actionBar.classList.toggle("onlyCoup", !!showOnlyCoup);
 
         const buttons = [
           $incomeBtn,
