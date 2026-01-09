@@ -10,17 +10,17 @@ function shuffle(arr) {
 }
 
 function makeDeck() {
-  // 3 of each role (standard Coup)
+  // 4 of each role (supports up to 8 players = 16 influence cards)
   const roles = ["Duke", "Assassin", "Captain", "Ambassador", "Contessa"];
   const deck = [];
-  for (const r of roles) for (let i = 0; i < 3; i++) deck.push(r);
+  for (const r of roles) for (let i = 0; i < 4; i++) deck.push(r);
   return shuffle(deck);
 }
 
 export class GameEngine {
 constructor(players) {
   // players: [{id,name}]
-  const MAX_PLAYERS = 6;
+  const MAX_PLAYERS = 8;
 
   if (!Array.isArray(players)) throw new Error("players must be an array");
   if (players.length < 2) throw new Error("Need at least 2 players");
