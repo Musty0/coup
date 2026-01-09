@@ -27,6 +27,14 @@ function sanitizeRoom(room) {
     .slice(0, 4);
 }
 
+function sendError(ws, code, message) {
+  try {
+    if (ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: "error", code, message }));
+    }
+  } catch {}
+}
+
 function getOrCreateRoom(roomCode) {
   let r = rooms.get(roomCode);
   if (!r) {
@@ -151,9 +159,34 @@ function startGameFromJoinOrder(room) {
     .filter(Boolean)
     .map((c) => ({ id: c.id, name: c.name }));
 
-  room.game = new GameEngine(players);
-  room.phase = "playing";
-  broadcastState(room);
+  // Extra guard (should never happen now, but prevents crashes)
+  if (players.length > MAX_PLAYERS) {
+    console.log(`[${room.room}] Tried to start with ${players.length} players (max ${MAX_PLAYERS}).`);
+    room.phase = "lobby";
+    room.game = null;
+    ensureHost(room);
+    broadcastState(room);
+    return;
+  }
+
+  try {
+    room.game = new GameEngine(players);
+    room.phase = "playing";
+    broadcastState(room);
+  } catch (err) {
+    console.log(`[${room.room}] startGame failed:`, err?.message || err);
+
+    // Reset cleanly to lobby instead of crashing the process
+    room.phase = "lobby";
+    room.game = null;
+    ensureHost(room);
+
+    // Optional: tell host what happened
+    const hostWs = room.wsById.get(room.hostId);
+    if (hostWs) sendError(hostWs, "START_FAILED", err?.message || "Start failed.");
+
+    broadcastState(room);
+  }
 }
 
 wss.on("connection", (ws) => {
@@ -172,11 +205,25 @@ wss.on("connection", (ws) => {
 
       const room = getOrCreateRoom(roomCode);
 
-      // Room full?
-      if (room.joinOrder.length >= MAX_PLAYERS) return;
+const id = data.id;
 
-      const id = data.id;
-      const name = sanitizeName(data.name) || "Player";
+// Room full? (allow reconnects, block new players)
+const isRejoin = room.joinOrder.includes(id) || room.wsById.has(id);
+
+if (!isRejoin && room.joinOrder.length >= MAX_PLAYERS) {
+  sendError(ws, "ROOM_FULL", `Room is full (${MAX_PLAYERS} max).`);
+  try { ws.close(1008, "Room full"); } catch {}
+  return;
+}
+
+// Optional: block new joins mid-game (but allow reconnects)
+if (!isRejoin && room.phase !== "lobby") {
+  sendError(ws, "GAME_IN_PROGRESS", "Game already in progress.");
+  try { ws.close(1008, "Game in progress"); } catch {}
+  return;
+}
+
+const name = sanitizeName(data.name) || "Player";
 
       // If same id already connected in this room, replace old socket (reconnect)
       const oldWs = room.wsById.get(id);
