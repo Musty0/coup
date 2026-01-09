@@ -1766,12 +1766,15 @@
         openCardZoom(role);
       });
 
+      const NAME_MAX = 8;
+
       function openNameModal() {
-        $nameInput.value = myName || "";
+        $nameInput.value = (myName || "").slice(0, NAME_MAX);
         $nameModalBackdrop.style.display = "flex";
         $nameInput.focus();
         $nameInput.select();
       }
+
       function closeNameModal() {
         $nameModalBackdrop.style.display = "none";
       }
@@ -1780,8 +1783,14 @@
       $nameModalBackdrop.addEventListener("click", (e) => {
         if (e.target === $nameModalBackdrop) closeNameModal();
       });
+
+      $nameInput.addEventListener("input", () => {
+        const v = $nameInput.value || "";
+        if (v.length > NAME_MAX) $nameInput.value = v.slice(0, NAME_MAX);
+      });
+
       $nameSaveBtn.onclick = () => {
-        const val = ($nameInput.value || "").trim().slice(0, 8);
+        const val = ($nameInput.value || "").trim().slice(0, NAME_MAX);
         if (!val) return;
         myName = val;
         sessionStorage.setItem("coup_name", myName);
