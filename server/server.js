@@ -203,27 +203,48 @@ wss.on("connection", (ws) => {
       const roomCode = sanitizeRoom(data.room);
       if (!/^[A-Z]{4}$/.test(roomCode)) return;
 
-      const room = getOrCreateRoom(roomCode);
+      const id = (data.id || "").toString();
+      if (!id) {
+        sendError(ws, "BAD_JOIN", "Missing id.");
+        try {
+          ws.close(1008, "Bad join");
+        } catch {}
+        return;
+      }
 
-const id = data.id;
+      // IMPORTANT: don't create a room just to reject someone.
+      const existing = rooms.get(roomCode);
 
-// Room full? (allow reconnects, block new players)
-const isRejoin = room.joinOrder.includes(id) || room.wsById.has(id);
+      // If room exists, enforce capacity + in-progress rules (allow reconnects)
+      if (existing) {
+        const isRejoin =
+          existing.joinOrder.includes(id) || existing.wsById.has(id);
 
-if (!isRejoin && room.joinOrder.length >= MAX_PLAYERS) {
-  sendError(ws, "ROOM_FULL", `Room is full (${MAX_PLAYERS} max).`);
-  try { ws.close(1008, "Room full"); } catch {}
-  return;
-}
+        if (!isRejoin && existing.joinOrder.length >= MAX_PLAYERS) {
+          sendError(
+            ws,
+            "ROOM_FULL",
+            `Lobby is full (${existing.joinOrder.length}/${MAX_PLAYERS}).`
+          );
+          try {
+            ws.close(1008, "Room full");
+          } catch {}
+          return;
+        }
 
-// Optional: block new joins mid-game (but allow reconnects)
-if (!isRejoin && room.phase !== "lobby") {
-  sendError(ws, "GAME_IN_PROGRESS", "Game already in progress.");
-  try { ws.close(1008, "Game in progress"); } catch {}
-  return;
-}
+        if (!isRejoin && existing.phase !== "lobby") {
+          sendError(ws, "GAME_IN_PROGRESS", "Game already in progress.");
+          try {
+            ws.close(1008, "Game in progress");
+          } catch {}
+          return;
+        }
+      }
 
-const name = sanitizeName(data.name) || "Player";
+      // Create room only after passing rejection checks
+      const room = existing || getOrCreateRoom(roomCode);
+
+      const name = sanitizeName(data.name) || "Player";
 
       // If same id already connected in this room, replace old socket (reconnect)
       const oldWs = room.wsById.get(id);
@@ -231,7 +252,7 @@ const name = sanitizeName(data.name) || "Player";
         try {
           oldWs.close();
         } catch {}
-        // removal happens on 'close' handler; but we also defensively detach now:
+        // defensive detach now:
         room.clients.delete(oldWs);
         wsMeta.delete(oldWs);
       }

@@ -16,10 +16,13 @@
         --accent: #a78bfa;
         --shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
         --radius: 16px;
-
         --infW: 38px;
         --infH: 50px;
         --infR: 10px;
+        --vvh: 1vh;
+        --actionBarH: 0px;
+        --topbarH: 56px;
+        --actionH: 92px;
       }
 
       * {
@@ -119,11 +122,6 @@
 
       body[data-phase="lobby"] {
         overflow: auto;
-      }
-
-      :root {
-        --topbarH: 56px;
-        --actionH: 92px;
       }
 
       .topbar {
@@ -544,7 +542,8 @@
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        transform: translateY(10px);
+        --pinDy: 0px;
+        transform: translateY(calc(10px + var(--pinDy)));
         transition: opacity 0.16s ease, transform 0.16s ease,
           visibility 0s linear 0.16s;
       }
@@ -553,7 +552,7 @@
         opacity: 1;
         visibility: visible;
         pointer-events: auto;
-        transform: translateY(0);
+        transform: translateY(var(--pinDy));
         transition: opacity 0.16s ease, transform 0.16s ease, visibility 0s;
       }
 
@@ -710,6 +709,73 @@
         background: rgba(255, 255, 255, 0.04);
       }
 
+      .helpSection {
+        border-radius: 12px;
+      }
+
+      .helpBody {
+        display: none;
+        padding: 8px 12px 2px 12px;
+        line-height: 1.35;
+      }
+
+      .helpSection.open .helpBody {
+        display: block;
+      }
+
+      /* Help: nested (role) collapsibles */
+      .helpSub {
+        margin-top: 8px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .helpSubSection {
+        border-radius: 12px;
+      }
+
+      .helpSubItem {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 8px 10px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .helpSubIcon {
+        font-size: 18px;
+        line-height: 1;
+        width: 26px;
+        height: 26px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        flex: 0 0 auto;
+      }
+
+      .helpSubBody {
+        display: none;
+        padding: 6px 12px 2px 12px;
+        line-height: 1.35;
+      }
+
+      .helpSubSection.open .helpSubBody {
+        display: block;
+      }
+
+      .helpBullets {
+        margin: 6px 0 0 0;
+        padding-left: 16px;
+      }
+
+      .helpBullets li {
+        margin: 4px 0;
+      }
+
       #helpPanel .helpText span {
         line-height: 1.35;
       }
@@ -808,9 +874,9 @@
 
       #drawer {
         position: absolute;
-        left: 6;
-        right: 6;
-        bottom: 6;
+        left: 6px;
+        right: 6px;
+        bottom: 6px;
         height: 65vh;
         background: rgba(0, 0, 0, 0.7);
         border-top: 1px solid var(--line);
@@ -833,6 +899,33 @@
         border: 1px solid rgba(255, 255, 255, 0.12);
         padding: 10px;
         border-radius: 14px;
+      }
+
+      /* Join rejection modal */
+      #joinErrorBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        z-index: 95;
+      }
+
+      #joinErrorModal {
+        width: min(520px, 100%);
+        background: rgba(0, 0, 0, 0.65);
+        color: var(--ink);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 16px;
+        padding: 14px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      #joinErrorModal h3 {
+        margin: 0 0 8px 0;
       }
 
       #nameModalBackdrop {
@@ -1356,7 +1449,206 @@
             <button id="helpCloseBtn" class="pill">Close</button>
           </div>
 
-          <!-- help content unchanged -->
+          <div class="helpGrid">
+            <!-- BASICS -->
+            <div class="helpSection collapsible">
+              <div class="helpItem helpToggle">
+                <div class="helpIcon">🏁</div>
+                <div class="helpText">
+                  <b>Goal</b>
+                  <span>Be the last player with influence remaining.</span>
+                </div>
+              </div>
+              <div class="helpBody tiny muted">
+                You start with <b>2 influence</b>. When you lose influence, you
+                reveal a card. Revealed cards are out.
+              </div>
+            </div>
+
+            <!-- TARGETING -->
+            <div class="helpSection collapsible">
+              <div class="helpItem helpToggle">
+                <div class="helpIcon">🎯</div>
+                <div class="helpText">
+                  <b>Targeting</b>
+                  <span>Tap a player to set them as your target.</span>
+                </div>
+              </div>
+              <div class="helpBody tiny muted">
+                Actions like <b>Steal / Assassinate / Coup</b> use your selected
+                target.
+              </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="helpSection collapsible">
+              <div class="helpItem helpToggle">
+                <div class="helpIcon">🪙</div>
+                <div class="helpText">
+                  <b>Actions (coins)</b>
+                  <span>Core actions + costs in one place.</span>
+                </div>
+              </div>
+              <div class="helpBody tiny muted">
+                <ul class="helpBullets">
+                  <li><b>Income</b>: +1 coin (always safe)</li>
+                  <li><b>Foreign Aid</b>: +2 coins (can be blocked by Duke)</li>
+                  <li>
+                    <b>Coup</b>: pay 7 → target loses 1 influence (cannot be
+                    blocked/challenged)
+                  </li>
+                  <li><b>10+ coins</b>: you must Coup</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- CARDS / ROLES -->
+            <div class="helpSection collapsible">
+              <div class="helpItem helpToggle">
+                <div class="helpIcon">🃏</div>
+                <div class="helpText">
+                  <b>Cards (Roles)</b>
+                  <span>Tap a role to see what it does.</span>
+                </div>
+              </div>
+
+              <div class="helpBody tiny muted">
+                Roles let you <b>claim</b> actions/blocks. If challenged and you
+                were lying, you lose 1 influence.
+
+                <div class="helpSub">
+                  <!-- DUKE -->
+                  <div class="helpSubSection collapsible">
+                    <div class="helpSubItem helpToggle">
+                      <div class="helpSubIcon">💰</div>
+                      <div class="helpText">
+                        <b>Duke</b>
+                        <span>Tax +3 • Blocks Foreign Aid</span>
+                      </div>
+                    </div>
+                    <div class="helpSubBody tiny muted">
+                      <ul class="helpBullets">
+                        <li><b>Action:</b> Tax → gain <b>+3</b> coins.</li>
+                        <li>
+                          <b>Block:</b> Stops someone taking <b>Foreign Aid</b>.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- ASSASSIN -->
+                  <div class="helpSubSection collapsible">
+                    <div class="helpSubItem helpToggle">
+                      <div class="helpSubIcon">🗡️</div>
+                      <div class="helpText">
+                        <b>Assassin</b>
+                        <span>Assassinate (pay 3)</span>
+                      </div>
+                    </div>
+                    <div class="helpSubBody tiny muted">
+                      <ul class="helpBullets">
+                        <li>
+                          <b>Action:</b> Pay <b>3</b> → target loses 1
+                          influence.
+                        </li>
+                        <li><b>Blocked by:</b> <b>Contessa</b>.</li>
+                        <li>
+                          <b>Challenge risk:</b> If you’re lying and get
+                          challenged, you lose 1 influence.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- CAPTAIN -->
+                  <div class="helpSubSection collapsible">
+                    <div class="helpSubItem helpToggle">
+                      <div class="helpSubIcon">🪙</div>
+                      <div class="helpText">
+                        <b>Captain</b>
+                        <span>Steal • Blocks Steal</span>
+                      </div>
+                    </div>
+                    <div class="helpSubBody tiny muted">
+                      <ul class="helpBullets">
+                        <li><b>Action:</b> Steal coins from target.</li>
+                        <li><b>Block:</b> Stops someone stealing from you.</li>
+                        <li><b>Also blocked by:</b> <b>Ambassador</b>.</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- AMBASSADOR -->
+                  <div class="helpSubSection collapsible">
+                    <div class="helpSubItem helpToggle">
+                      <div class="helpSubIcon">🔄</div>
+                      <div class="helpText">
+                        <b>Ambassador</b>
+                        <span>Exchange • Blocks Steal</span>
+                      </div>
+                    </div>
+                    <div class="helpSubBody tiny muted">
+                      <ul class="helpBullets">
+                        <li>
+                          <b>Action:</b> Exchange → improve your hand (you’ll be
+                          shown options).
+                        </li>
+                        <li><b>Block:</b> Stops someone stealing from you.</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- CONTESSA -->
+                  <div class="helpSubSection collapsible">
+                    <div class="helpSubItem helpToggle">
+                      <div class="helpSubIcon">🛡️</div>
+                      <div class="helpText">
+                        <b>Contessa</b>
+                        <span>Blocks Assassinate</span>
+                      </div>
+                    </div>
+                    <div class="helpSubBody tiny muted">
+                      <ul class="helpBullets">
+                        <li>
+                          <b>Block:</b> Stops an assassination targeting you.
+                        </li>
+                        <li>
+                          <b>Can be challenged:</b> If you claimed Contessa and
+                          don’t have it, you lose 1 influence.
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CHALLENGE / BLOCK -->
+            <div class="helpSection collapsible">
+              <div class="helpItem helpToggle">
+                <div class="helpIcon">⚔️</div>
+                <div class="helpText">
+                  <b>Challenge / Block</b>
+                  <span>When to press the red button.</span>
+                </div>
+              </div>
+              <div class="helpBody tiny muted">
+                <ul class="helpBullets">
+                  <li>
+                    <b>Challenge</b> if you think someone is lying about a role.
+                  </li>
+                  <li>
+                    If you challenge and you’re wrong,
+                    <b>you lose 1 influence</b>.
+                  </li>
+                  <li>
+                    <b>Blocks</b> stop certain actions (and blocks can be
+                    challenged too).
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1376,10 +1668,29 @@
     <div id="drawer">
       <div class="inner">
         <div class="row rowBetween mb10">
-          <b>Log</b>
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <b>Log</b>
+            <div class="tiny muted" id="logCount"></div>
+          </div>
           <button id="drawerCloseBtn" class="pill">Close</button>
         </div>
+
+        <div id="logPlayers" class="tiny muted mb10"></div>
         <div id="log"></div>
+      </div>
+    </div>
+
+    <div id="joinErrorBackdrop">
+      <div id="joinErrorModal">
+        <h3 id="joinErrorTitle">Unable to join</h3>
+        <div
+          class="muted tiny"
+          id="joinErrorMsg"
+          style="margin-bottom: 10px"
+        ></div>
+        <div class="row mt10 rowEnd">
+          <button id="joinErrorHomeBtn" class="primary">Home</button>
+        </div>
       </div>
     </div>
 
@@ -1461,16 +1772,45 @@
       const $helpPanel = document.getElementById("helpPanel");
       const $helpBtn = document.getElementById("helpBtn");
       const $helpCloseBtn = document.getElementById("helpCloseBtn");
+
+      // Help panel portal (fixes iOS/transform + position:fixed rendering issues)
+      const helpPortal = { parent: null, next: null, active: false };
+
+      function portalHelpToBody() {
+        if (helpPortal.active) return;
+        helpPortal.parent = $helpPanel.parentNode;
+        helpPortal.next = $helpPanel.nextSibling;
+        document.body.appendChild($helpPanel);
+        helpPortal.active = true;
+      }
+
+      function restoreHelpFromBody() {
+        if (!helpPortal.active) return;
+        const p = helpPortal.parent;
+        const n = helpPortal.next;
+        if (p) {
+          if (n) p.insertBefore($helpPanel, n);
+          else p.appendChild($helpPanel);
+        }
+        helpPortal.active = false;
+      }
+
       const $drawer = document.getElementById("drawer");
       const $drawerBtn = document.getElementById("drawerBtn");
       const $drawerCloseBtn = document.getElementById("drawerCloseBtn");
       const $log = document.getElementById("log");
+      const $logPlayers = document.getElementById("logPlayers");
+      const $logCount = document.getElementById("logCount");
       const $changeNameBtn = document.getElementById("changeNameBtn");
       const $leaveBtn = document.getElementById("leaveBtn");
       const $nameModalBackdrop = document.getElementById("nameModalBackdrop");
       const $nameInput = document.getElementById("nameInput");
       const $nameCancelBtn = document.getElementById("nameCancelBtn");
       const $nameSaveBtn = document.getElementById("nameSaveBtn");
+      const $joinErrorBackdrop = document.getElementById("joinErrorBackdrop");
+      const $joinErrorTitle = document.getElementById("joinErrorTitle");
+      const $joinErrorMsg = document.getElementById("joinErrorMsg");
+      const $joinErrorHomeBtn = document.getElementById("joinErrorHomeBtn");
       const $cardZoomBackdrop = document.getElementById("cardZoomBackdrop");
       const $cardZoomTitle = document.getElementById("cardZoomTitle");
       const $cardZoomClose = document.getElementById("cardZoomClose");
@@ -1524,7 +1864,51 @@
 
       function setPanelVisible(el, on) {
         if (!el) return;
+
+        if (!on) {
+          // reset pin correction when hiding
+          el.style.setProperty("--pinDy", "0px");
+        }
+
         el.classList.toggle("show", !!on);
+
+        // Mobile: auto-correct panel position when shown (fix intermittent "too high")
+        if (on) requestAnimationFrame(() => autoPinMobilePanel(el));
+      }
+
+      function autoPinMobilePanel(el) {
+        if (!isMobile()) return;
+        if (!el.classList.contains("panel")) return;
+        if (!el.classList.contains("show")) return;
+
+        const id = el.id || "";
+        const isPinCandidate =
+          id === "responsePanel" ||
+          id === "mustCoupHint" ||
+          id === "exchangePanel" ||
+          id === "reconnectPanel";
+
+        if (!isPinCandidate) return;
+
+        const panelRect = el.getBoundingClientRect();
+        const actionRect = $actionBar
+          ? $actionBar.getBoundingClientRect()
+          : { top: window.innerHeight };
+
+        // Desired: panel bottom sits above action bar with a small gap
+        const gap = 60;
+        const desiredBottom = actionRect.top - gap;
+
+        // Positive dy moves panel DOWN, negative dy moves it UP
+        let dy = desiredBottom - panelRect.bottom;
+
+        // Clamp so we never shove it too far (prevents "too low" or huge jumps)
+        dy = Math.max(-140, Math.min(40, dy));
+
+        // If already close enough, don't touch
+        if (Math.abs(dy) < 6) dy = 0;
+
+        el.style.setProperty("--pinDy", `${dy}px`);
       }
 
       // MOBILE fallback: show lobby UI until we receive first WS state
@@ -1594,6 +1978,30 @@
 
       let ws = null;
       let lastState = null;
+      let joinRejectedMessage = "";
+      let joinRejectedCode = "";
+
+      function showJoinError(code, message) {
+        joinRejectedCode = code || "";
+        joinRejectedMessage = message || "Unable to join.";
+
+        if ($joinErrorTitle) {
+          $joinErrorTitle.textContent =
+            joinRejectedCode === "ROOM_FULL"
+              ? "Lobby is full"
+              : joinRejectedCode === "GAME_IN_PROGRESS"
+              ? "Game in progress"
+              : "Unable to join";
+        }
+
+        if ($joinErrorMsg) $joinErrorMsg.textContent = joinRejectedMessage;
+
+        if ($joinErrorBackdrop) $joinErrorBackdrop.style.display = "flex";
+      }
+
+      function hideJoinError() {
+        if ($joinErrorBackdrop) $joinErrorBackdrop.style.display = "none";
+      }
 
       let manualLeave = false;
       let reconnectTimer = null;
@@ -1661,6 +2069,21 @@
             render(msg.state);
           }
 
+          if (msg.type === "error") {
+            // Stop reconnect loops; show user a clear reason
+            manualLeave = true; // prevents auto-reconnect logic
+            sessionStorage.setItem("coup_left", "1");
+
+            const code = msg.code || "JOIN_REJECTED";
+            const message = msg.message || "Unable to join.";
+            showJoinError(code, message);
+
+            try {
+              ws?.close();
+            } catch {}
+            return;
+          }
+
           if (msg.type === "private" && msg.kind === "exchangeOptions") {
             exchangeOptions = {
               keepCount: msg.keepCount,
@@ -1677,6 +2100,21 @@
 
           // If they intentionally left previously, never auto-reconnect.
           if (sessionStorage.getItem("coup_left") === "1") return;
+
+          // If we were rejected (room full / game in progress), don't try to reconnect.
+          if (joinRejectedMessage) {
+            setDisconnectedUI(false);
+            document.body.dataset.phase = "lobby";
+            setPanelVisible($lobbyPanel, true);
+            if ($startBtn) $startBtn.style.display = "none";
+            if ($turn) $turn.textContent = "Unable to join";
+            if ($startHint) $startHint.textContent = joinRejectedMessage;
+            if ($lobbyHost) $lobbyHost.textContent = `Lobby code: ${ROOM}`;
+            return;
+          }
+
+          // If join was rejected and we already showed a modal, don't reconnect.
+          if (joinRejectedMessage) return;
 
           reconnectAttempt++;
 
@@ -1720,12 +2158,19 @@
       $drawerCloseBtn.onclick = closeDrawer;
 
       function openHelp() {
+        portalHelpToBody();
         setPanelVisible($helpPanel, true);
-        requestAnimationFrame(syncHelpFade);
+        requestAnimationFrame(() => {
+          syncHelpFade();
+          // run twice to be safe after DOM move + layout
+          requestAnimationFrame(syncHelpFade);
+        });
       }
 
       function closeHelp() {
         setPanelVisible($helpPanel, false);
+        // wait for fade-out transition to finish, then restore
+        setTimeout(restoreHelpFromBody, 200);
       }
 
       function syncHelpFade() {
@@ -1806,6 +2251,18 @@
         send({ type: "rename", id: myId, name: myName });
         closeNameModal();
       };
+
+      if ($joinErrorHomeBtn) {
+        $joinErrorHomeBtn.onclick = () => {
+          // Treat as intentional leave (prevents reconnect loops)
+          manualLeave = true;
+          sessionStorage.setItem("coup_left", "1");
+          try {
+            ws?.close();
+          } catch {}
+          location.href = "home.html";
+        };
+      }
 
       $leaveBtn.onclick = () => {
         manualLeave = true;
@@ -2004,10 +2461,10 @@
 
         return `
 
-                    left:${p.left}%;
-                    top:${p.top}%;
-                    transform: translate(-50%, -50%) scale(${extraScale});
-                  `;
+                      left:${p.left}%;
+                      top:${p.top}%;
+                      transform: translate(-50%, -50%) scale(${extraScale});
+                    `;
       }
 
       function setSelectedTarget(state, id) {
@@ -2179,33 +2636,33 @@
               : "";
 
           seat.innerHTML = `
-                            <div class="seatTop">
-                              <div class="seatName">${p.name}</div>
-                              <div style="display:flex; gap:6px; align-items:center;">${hostTag}${turnTag}</div>
-                            </div>
-                            <div class="seatMeta">
-                              <span class="muted">Coins</span>
-                              <span class="coinStack">🪙 <b>${
-                                p.coins ?? 0
-                              }</b></span>
-                            </div>
-                            <div class="infs">
-                              ${(p.influence || [])
-                                .map((c) => {
-                                  if (c.revealed) {
-                                    const src = ROLE_CARD_IMG[c.role];
-                                    return `<div class="infCard revealed" data-role="${c.role}" title="${c.role}">
-                                      <img src="${src}" alt="${c.role}">
-                                    </div>`;
-                                  }
+                              <div class="seatTop">
+                                <div class="seatName">${p.name}</div>
+                                <div style="display:flex; gap:6px; align-items:center;">${hostTag}${turnTag}</div>
+                              </div>
+                              <div class="seatMeta">
+                                <span class="muted">Coins</span>
+                                <span class="coinStack">🪙 <b>${
+                                  p.coins ?? 0
+                                }</b></span>
+                              </div>
+                              <div class="infs">
+                                ${(p.influence || [])
+                                  .map((c) => {
+                                    if (c.revealed) {
+                                      const src = ROLE_CARD_IMG[c.role];
+                                      return `<div class="infCard revealed" data-role="${c.role}" title="${c.role}">
+                                        <img src="${src}" alt="${c.role}">
+                                      </div>`;
+                                    }
 
-                                  return `<div class="infCard">
-                                    <img src="${ROLE_CARD_IMG.__BACK__}" alt="Hidden card">
-                                  </div>`;
-                                })
-                                .join("")}
-                            </div>
-                          `;
+                                    return `<div class="infCard">
+                                      <img src="${ROLE_CARD_IMG.__BACK__}" alt="Hidden card">
+                                    </div>`;
+                                  })
+                                  .join("")}
+                              </div>
+                            `;
 
           seat.addEventListener("click", (ev) => {
             const card = ev.target.closest(".infCard");
@@ -2238,12 +2695,12 @@
               : -102; // 👈 keep your current value for 8 players
 
           you.style.cssText = `
-    left: ${Math.max(6, Math.min(94, youPos.left))}%;
-    top: auto;
-    bottom: ${bottomOffset}px;
-    transform: translateX(-50%);
-    z-index: 20;
-  `;
+      left: ${Math.max(6, Math.min(94, youPos.left))}%;
+      top: auto;
+      bottom: ${bottomOffset}px;
+      transform: translateX(-50%);
+      z-index: 20;
+    `;
         } else {
           you.style.cssText = seatStyleFromPos(
             youSlotEllipse(others.length),
@@ -2262,45 +2719,61 @@
           ? "Your turn"
           : "Waiting";
         you.innerHTML = `
-                          <div class="seatTop">
-                            <div class="seatName">${me?.name || "You"}</div>
-                            <span class="tag">${turnText}</span>
-                          </div>
-                          <div class="youMetaLine">
-                            <span class="coinStack">🪙 <b>${
-                              me?.coins ?? 0
-                            }</b></span>
-                            <span class="muted">Influence: <b>${aliveCards}</b></span>
-                            <span class="muted">Target: <b>${
-                              selectedTargetId
-                                ? playerNameById(state, selectedTargetId)
-                                : "—"
-                            }</b></span>
-                          </div>
-                          <div class="infs">
-                            ${(me?.influence || [])
-                              .map((c) => {
-                                const isVisible = !isLobby || c.revealed;
-                                const src = isVisible
-                                  ? ROLE_CARD_IMG[c.role]
-                                  : ROLE_CARD_IMG.__BACK__;
+                            <div class="seatTop">
+                              <div class="seatName">${me?.name || "You"}</div>
+                              <span class="tag">${turnText}</span>
+                            </div>
+                            <div class="youMetaLine">
+                              <span class="coinStack">🪙 <b>${
+                                me?.coins ?? 0
+                              }</b></span>
+                              <span class="muted">Influence: <b>${aliveCards}</b></span>
+                              <span class="muted">Target: <b>${
+                                selectedTargetId
+                                  ? playerNameById(state, selectedTargetId)
+                                  : "—"
+                              }</b></span>
+                            </div>
+                            <div class="infs">
+                              ${(me?.influence || [])
+                                .map((c) => {
+                                  const isVisible = !isLobby || c.revealed;
+                                  const src = isVisible
+                                    ? ROLE_CARD_IMG[c.role]
+                                    : ROLE_CARD_IMG.__BACK__;
 
-                                const cls = c.revealed
-                                  ? "infCard revealed"
-                                  : "infCard";
+                                  const cls = c.revealed
+                                    ? "infCard revealed"
+                                    : "infCard";
 
-                                return `<div class="${cls}" ${
-                                  isVisible
-                                    ? `data-role="${c.role}" title="${c.role}"`
-                                    : ""
-                                }>
-                                  <img src="${src}" alt="Influence card">
-                                </div>`;
-                              })
-                              .join("")}
-                          </div>
-                        `;
+                                  return `<div class="${cls}" ${
+                                    isVisible
+                                      ? `data-role="${c.role}" title="${c.role}"`
+                                      : ""
+                                  }>
+                                    <img src="${src}" alt="Influence card">
+                                  </div>`;
+                                })
+                                .join("")}
+                            </div>
+                          `;
         $seats.appendChild(you);
+
+        // Log + meta
+        const maxPlayers = 8;
+        const alive = (players || []).filter((p) => p.alive).length;
+        const countText = `${players.length}/${maxPlayers} players • ${alive} alive`;
+        if ($logCount) $logCount.textContent = countText;
+
+        if ($logPlayers) {
+          $logPlayers.textContent = (players || [])
+            .map((p) => {
+              const youTag = p.id === myId ? " (you)" : "";
+              const deadTag = !p.alive && !isLobby ? " ✖" : "";
+              return `• ${p.name}${youTag}${deadTag}`;
+            })
+            .join("\n");
+        }
 
         $log.textContent = (state.log || []).join("\n");
 
@@ -2599,9 +3072,17 @@
         sendResponse("block", { role: "Ambassador" });
 
       document.addEventListener("click", (e) => {
-        const section = e.target.closest(".helpSection.collapsible");
+        // Toggle only when clicking a header row marked as .helpToggle
+        const toggle = e.target.closest(".helpToggle");
+        if (!toggle) return;
+
+        const section =
+          toggle.closest(".helpSubSection.collapsible") ||
+          toggle.closest(".helpSection.collapsible");
+
         if (!section) return;
         section.classList.toggle("open");
+        requestAnimationFrame(syncHelpFade);
       });
 
       function syncLayoutHeights() {
@@ -2614,7 +3095,18 @@
       }
 
       window.addEventListener("resize", syncLayoutHeights);
+      window.addEventListener("resize", () => {
+        // if response panel is open, re-pin it
+        if ($responsePanel && $responsePanel.classList.contains("show")) {
+          requestAnimationFrame(() => autoPinMobilePanel($responsePanel));
+        }
+      });
       requestAnimationFrame(syncLayoutHeights);
+
+      if (window.visualViewport) {
+        visualViewport.addEventListener("resize", syncLayoutHeights);
+        visualViewport.addEventListener("scroll", syncLayoutHeights);
+      }
 
       connect();
     </script>
