@@ -10,7 +10,7 @@ function shuffle(arr) {
 }
 
 function makeDeck() {
-  // 4 of each role (supports up to 8 players = 16 influence cards)
+    // 4 of each role (supports up to 4 seats = 8 influence cards)
   const roles = ["Duke", "Assassin", "Captain", "Ambassador", "Contessa"];
   const deck = [];
   for (const r of roles) for (let i = 0; i < 4; i++) deck.push(r);
@@ -20,7 +20,7 @@ function makeDeck() {
 export class GameEngine {
 constructor(players) {
   // players: [{id,name}]
-  const MAX_PLAYERS = 8;
+  const MAX_PLAYERS = 4;
 
   if (!Array.isArray(players)) throw new Error("players must be an array");
   if (players.length < 2) throw new Error("Need at least 2 players");

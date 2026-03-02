@@ -11,7 +11,13 @@ function initResponders(game, excludeId) {
   return responders;
 }
 
+function respondersEmpty(responders) {
+  return !responders || Object.keys(responders).length === 0;
+}
+
 function everyonePassed(responders) {
+  // NOTE: for {}, this returns true (vacuously). We handle empty responders explicitly
+  // at stage-creation time so we don't get stuck waiting for responses that can't happen.
   return Object.values(responders || {}).every((v) => v === "passed");
 }
 
@@ -75,12 +81,15 @@ function startExchangeChoice(game, actorId) {
   // store secret actor-only options
   game._private.exchange.set(actorId, { keepCount, options });
 
+const exchangeKey = `${actorId}-${Date.now()}`;
+
   // public stage
   game.pendingAction = {
     type: "exchange",
     stage: "awaitingChoice",
     actorId,
     keepCount,
+    key: exchangeKey,
   };
 
   return {
@@ -91,6 +100,7 @@ function startExchangeChoice(game, actorId) {
         msg: {
           type: "private",
           kind: "exchangeOptions",
+          key: exchangeKey,
           keepCount,
           options: options.map(({ id, role }) => ({ id, role })),
         },
@@ -215,11 +225,19 @@ export function resolveAction(game, { actorId, actionType, targetId }) {
       actor.coins += 2; // tentative (undo if blocked)
       game.log.push(`${actor.name} attempts Foreign Aid (+2).`);
 
+      const responders = initResponders(game, actorId);
+
+      // If nobody can respond, it immediately succeeds.
+      if (respondersEmpty(responders)) {
+        game.log.push(`Foreign Aid succeeds.`);
+        return finishTurn(game);
+      }
+
       game.pendingAction = {
         type: "foreign_aid",
         stage: "awaitingBlock",
         actorId,
-        responders: initResponders(game, actorId),
+        responders,
         blockedBy: null,
       };
       return { state: game.getPublicState(), privates: [] };
@@ -227,12 +245,22 @@ export function resolveAction(game, { actorId, actionType, targetId }) {
 
     case "tax": {
       game.log.push(`${actor.name} claims Duke for Tax (+3).`);
+
+      const responders = initResponders(game, actorId);
+
+      // If nobody can respond, immediately resolve the action.
+      if (respondersEmpty(responders)) {
+        actor.coins += 3;
+        game.log.push(`${actor.name} takes Tax (+3).`);
+        return finishTurn(game);
+      }
+
       game.pendingAction = {
         type: "tax",
         stage: "awaitingChallenge",
         actorId,
         claimedRole: "Duke",
-        responders: initResponders(game, actorId),
+        responders,
       };
       return { state: game.getPublicState(), privates: [] };
     }
@@ -251,6 +279,22 @@ export function resolveAction(game, { actorId, actionType, targetId }) {
       actor.coins -= 3;
       game.log.push(`${actor.name} claims Assassin to assassinate ${target.name} (3 coins).`);
 
+      const responders = initResponders(game, actorId);
+
+      // If nobody can challenge, skip straight to target block.
+      if (respondersEmpty(responders)) {
+        game.pendingAction = {
+          type: "assassinate",
+          stage: "awaitingBlock",
+          actorId,
+          targetId: target.id,
+          claimedRole: "Assassin",
+          blockedBy: null,
+          responders: { [target.id]: "pending" }, // only target can block
+        };
+        return { state: game.getPublicState(), privates: [] };
+      }
+
       game.pendingAction = {
         type: "assassinate",
         stage: "awaitingChallenge",
@@ -258,7 +302,7 @@ export function resolveAction(game, { actorId, actionType, targetId }) {
         targetId: target.id,
         claimedRole: "Assassin",
         blockedBy: null,
-        responders: initResponders(game, actorId),
+        responders,
       };
       return { state: game.getPublicState(), privates: [] };
     }
@@ -271,6 +315,24 @@ export function resolveAction(game, { actorId, actionType, targetId }) {
       }
 
       game.log.push(`${actor.name} claims Captain to steal from ${target.name}.`);
+
+      const responders = initResponders(game, actorId);
+
+      // If nobody can challenge, skip straight to target block.
+      if (respondersEmpty(responders)) {
+        game.pendingAction = {
+          type: "steal",
+          stage: "awaitingBlock",
+          actorId,
+          targetId: target.id,
+          claimedRole: "Captain",
+          blockedBy: null,
+          blockRole: null,
+          responders: { [target.id]: "pending" }, // only target can block
+        };
+        return { state: game.getPublicState(), privates: [] };
+      }
+
       game.pendingAction = {
         type: "steal",
         stage: "awaitingChallenge", // challenge Captain claim
@@ -279,19 +341,27 @@ export function resolveAction(game, { actorId, actionType, targetId }) {
         claimedRole: "Captain",
         blockedBy: null,
         blockRole: null,
-        responders: initResponders(game, actorId),
+        responders,
       };
       return { state: game.getPublicState(), privates: [] };
     }
 
     case "exchange": {
       game.log.push(`${actor.name} claims Ambassador to Exchange.`);
+
+      const responders = initResponders(game, actorId);
+
+      // If nobody can challenge, immediately start choice.
+      if (respondersEmpty(responders)) {
+        return startExchangeChoice(game, actorId);
+      }
+
       game.pendingAction = {
         type: "exchange",
         stage: "awaitingChallenge",
         actorId,
         claimedRole: "Ambassador",
-        responders: initResponders(game, actorId),
+        responders,
       };
       return { state: game.getPublicState(), privates: [] };
     }
@@ -382,8 +452,19 @@ export function handleResponse(game, { playerId, responseType, payload }) {
       } else if (responseType === "block" && payload?.role === "Duke") {
         pending.blockedBy = playerId;
         pending.stage = "awaitingChallengeBlock";
-        pending.responders = initResponders(game, pending.blockedBy);
+
+        const nextResponders = initResponders(game, pending.blockedBy);
+        pending.responders = nextResponders;
+
         game.log.push(`${game.getPlayer(playerId).name} blocks Foreign Aid with Duke.`);
+
+        // If nobody can challenge the block, the block immediately stands.
+        if (respondersEmpty(nextResponders)) {
+          actor.coins -= 2;
+          game.log.push(`Foreign Aid is blocked.`);
+          return finishTurn(game);
+        }
+
         return { state: game.getPublicState(), privates: [] };
       } else {
         return { state: game.getPublicState(), privates: [] };
@@ -515,13 +596,22 @@ export function handleResponse(game, { playerId, responseType, payload }) {
 
       if (responseType === "block" && payload?.role === "Contessa") {
         game.log.push(`${target.name} blocks the assassination with Contessa.`);
+
+        const responders = initResponders(game, pending.targetId); // anyone except blocker can challenge
+
+        // If nobody can challenge, block stands immediately.
+        if (respondersEmpty(responders)) {
+          game.log.push(`Assassination is blocked.`);
+          return finishTurn(game);
+        }
+
         game.pendingAction = {
           type: "assassinate",
           stage: "awaitingChallengeBlock",
           actorId: pending.actorId,
           targetId: pending.targetId,
           blockedBy: pending.targetId,
-          responders: initResponders(game, pending.targetId),
+          responders,
         };
         return { state: game.getPublicState(), privates: [] };
       }
@@ -643,6 +733,15 @@ export function handleResponse(game, { playerId, responseType, payload }) {
       if (responseType === "block" && (payload?.role === "Captain" || payload?.role === "Ambassador")) {
         const role = payload.role;
         game.log.push(`${target.name} blocks the steal with ${role}.`);
+
+        const responders = initResponders(game, pending.targetId); // anyone except blocker can challenge
+
+        // If nobody can challenge, block stands immediately.
+        if (respondersEmpty(responders)) {
+          game.log.push(`Steal is blocked.`);
+          return finishTurn(game);
+        }
+
         game.pendingAction = {
           type: "steal",
           stage: "awaitingChallengeBlock",
@@ -650,7 +749,7 @@ export function handleResponse(game, { playerId, responseType, payload }) {
           targetId: pending.targetId,
           blockedBy: pending.targetId,
           blockRole: role,
-          responders: initResponders(game, pending.targetId), // anyone except blocker can challenge
+          responders,
         };
         return { state: game.getPublicState(), privates: [] };
       }
