@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -27,9 +27,15 @@
       }
       body {
         margin: 0;
-        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial;
         color: var(--ink);
-        background: radial-gradient(
+        background:
+          radial-gradient(
             1200px 700px at 50% 25%,
             rgba(167, 139, 250, 0.18),
             transparent 55%
@@ -302,8 +308,8 @@
 
         <div class="row">
           <label>
-            <span>Your name (max 10)</span>
-            <input id="name" maxlength="10" autocomplete="off" />
+            <span>Your name (max 7)</span>
+            <input id="name" maxlength="7" autocomplete="off" />
           </label>
 
           <button id="createBtn" class="good">Create Game</button>
@@ -321,10 +327,26 @@
             <button id="joinBtn" class="primary small">Join</button>
           </div>
 
-          <button id="rulesBtn" class="ghostLink" type="button">Rules</button>
+          <button
+            id="rulesBtn"
+            type="button"
+            style="
+              background: rgba(255, 255, 255, 0.06);
+              border: 1px solid rgba(255, 255, 255, 0.14);
+              border-radius: 14px;
+              padding: 12px;
+              font-size: 15px;
+              font-weight: 700;
+              width: 100%;
+              cursor: pointer;
+              color: var(--ink);
+            "
+          >
+            📖 Rules
+          </button>
           <div class="hint" id="hint"></div>
 
-          <div class="footer">Tip: share the 4-letter code with friends.</div>
+          <div class="footer" id="funFact"></div>
         </div>
       </div>
     </div>
@@ -346,27 +368,43 @@
         <div class="rulesGrid">
           <div class="ruleItem">
             <div class="ruleIcon">🏆</div>
-            <div><b>Win</b><span>Be last with any hidden influence.</span></div>
+            <div>
+              <b>Goal</b
+              ><span
+                >Be the last seat with any hidden influence card. Everyone else
+                is eliminated.</span
+              >
+            </div>
           </div>
           <div class="ruleItem">
             <div class="ruleIcon">🃏</div>
             <div>
               <b>Influence</b
               ><span
-                >Start with 2 cards. Reveal one when you lose influence.</span
+                >Each seat starts with 2 face-down cards. When you lose
+                influence, you reveal one. Reveal both and you're out.</span
               >
             </div>
           </div>
           <div class="ruleItem">
             <div class="ruleIcon">🪙</div>
             <div>
-              <b>Coins</b><span>Coup costs 7. Assassinate costs 3.</span>
+              <b>Coins &amp; Actions</b
+              ><span
+                >Income +1 · Foreign Aid +2 (blockable) · Tax +3 (Duke) · Steal
+                +2 from target (Captain) · Assassinate costs 3 · Coup costs 7 ·
+                Exchange cards (Ambassador). At 10+ coins you must Coup.</span
+              >
             </div>
           </div>
           <div class="ruleItem">
-            <div class="ruleIcon">⚠️</div>
+            <div class="ruleIcon">🛡️</div>
             <div>
-              <b>10+ Coins</b><span>If you have 10+, you must Coup.</span>
+              <b>Blocks</b
+              ><span
+                >Duke blocks Foreign Aid · Captain or Ambassador blocks Steal ·
+                Contessa blocks Assassinate · Coup cannot be blocked.</span
+              >
             </div>
           </div>
           <div class="ruleItem">
@@ -374,7 +412,31 @@
             <div>
               <b>Challenges</b
               ><span
-                >Challenge role claims/blocks. Loser reveals 1 influence.</span
+                >Anyone can challenge a role claim. If the claimer doesn't have
+                it, they lose 1 influence. If they do have it, the challenger
+                loses 1 influence instead. Blocks can also be challenged.</span
+              >
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">👥</div>
+            <div>
+              <b>Teams</b
+              ><span
+                >Two players can share a seat as Leader and Advisor. The Leader
+                executes actions, the Advisor can suggest targets and actions.
+                Both see the same cards.</span
+              >
+            </div>
+          </div>
+          <div class="ruleItem">
+            <div class="ruleIcon">🎭</div>
+            <div>
+              <b>Bluffing</b
+              ><span
+                >You can claim any role even if you don't have it. The skill is
+                knowing when others are lying — and not getting caught
+                yourself.</span
               >
             </div>
           </div>
@@ -391,7 +453,7 @@
       $name.value = sessionStorage.getItem("coup_name") || "";
 
       function sanitizeName(s) {
-        return (s || "").trim().slice(0, 10);
+        return (s || "").trim().slice(0, 7);
       }
 
       function sanitizeCode(s) {
@@ -409,7 +471,7 @@
         return out;
       }
 
-      function goToGame(room) {
+      function goToGame(room, isCreate = false) {
         const name = sanitizeName($name.value);
         if (!name) {
           $hint.textContent = "Enter a name.";
@@ -423,7 +485,7 @@
           return;
         }
 
-        location.href = `index.html?room=${encodeURIComponent(code)}`;
+        location.href = `index.html?room=${encodeURIComponent(code)}${isCreate ? "&new=1" : ""}`;
       }
 
       // Keep code input strictly A–Z
@@ -453,9 +515,8 @@
 
       document.getElementById("createBtn").onclick = () => {
         const code = makeCode4();
-        // optional: show it in the box so user can copy
         $code.value = code;
-        goToGame(code);
+        goToGame(code, true);
       };
 
       document.getElementById("joinBtn").onclick = () => {
@@ -491,13 +552,8 @@
       const params = new URLSearchParams(location.search);
       const room = params.get("room");
 
-      const lastRoom = sessionStorage.getItem("coup_last_room") || "";
-      /*const leftFlag = sessionStorage.getItem("coup_left") === "1";*/
-
       if (room) {
         $code.value = sanitizeCode(room);
-      } else if (lastRoom) {
-        $code.value = sanitizeCode(lastRoom);
       }
 
       /*// If they clicked Leave, show a neutral hint once, then clear
@@ -506,6 +562,20 @@
         // Optional: clear immediately so it doesn't keep showing forever
         sessionStorage.removeItem("coup_left");
       }*/
+      const FACTS = [
+        "Coup was designed by Rikki Tahta in 2012.",
+        "With 6 players, only 3 of each role exist in the deck.",
+        "A well-timed bluff can win even with 0 coins.",
+        "The Duke is the most commonly claimed role.",
+        "You can Coup your own teammate… but probably shouldn't.",
+        "Share the 4-letter code to invite friends.",
+        "Contessa is the only role with no action — just a block.",
+        "10 coins? You have no choice. Coup someone.",
+      ];
+      document.getElementById("funFact").textContent =
+        FACTS[Math.floor(Math.random() * FACTS.length)];
+
+      // Tour removed — handled in-game via Help panel
     </script>
     <div id="rulesBackdrop" class="modalBackdrop" aria-hidden="true">
       <div

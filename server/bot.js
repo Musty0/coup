@@ -18,14 +18,11 @@ const ROLE_VALUE = {
 };
 
 // Bot personality names
-export const BOT_NAMES = [
-  "Voltaire", "Richelieu", "Fouché", "Talleyrand",
-  "Mazarin", "Colbert", "Necker", "Mirabeau",
-];
+export const BOT_NAMES = ["Zayn", "Rumi", "Ayla", "Znlepsn"];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function randomDelay(min = 500, max = 1200) {
+function randomDelay(min = 900, max = 2800) {
   return min + Math.floor(Math.random() * (max - min));
 }
 
@@ -439,11 +436,10 @@ export function botTick(room, { resolveAction, handleResponse, broadcastState, a
         targetId: decision.targetId || null,
       });
 
-      if (room.game.gameOver) room.phase = "ended";
       broadcastState(room);
       applyPrivates(room, result);
       botTick(room, { resolveAction, handleResponse, broadcastState, applyPrivates });
-    }, randomDelay());
+    }, randomDelay(1400, 3600));
     return;
   }
 
@@ -468,7 +464,6 @@ export function botTick(room, { resolveAction, handleResponse, broadcastState, a
         payload: { cardIndex: decision.cardIndex },
       });
 
-      if (room.game.gameOver) room.phase = "ended";
       broadcastState(room);
       applyPrivates(room, result);
       botTick(room, { resolveAction, handleResponse, broadcastState, applyPrivates });
@@ -499,7 +494,6 @@ export function botTick(room, { resolveAction, handleResponse, broadcastState, a
         payload: { keep },
       });
 
-      if (room.game.gameOver) room.phase = "ended";
       broadcastState(room);
       applyPrivates(room, result);
       botTick(room, { resolveAction, handleResponse, broadcastState, applyPrivates });
@@ -571,7 +565,6 @@ function scheduleBotResponse(room, bot, pendingSnapshot, fns) {
       payload: decision.payload || {},
     });
 
-    if (room.game.gameOver) room.phase = "ended";
     broadcastState(room);
     applyPrivates(room, result);
     botTick(room, { resolveAction, handleResponse, broadcastState, applyPrivates });

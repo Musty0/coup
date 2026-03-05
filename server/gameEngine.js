@@ -10,10 +10,10 @@ function shuffle(arr) {
 }
 
 function makeDeck() {
-    // 4 of each role (supports up to 4 seats = 8 influence cards)
+  // 3 of each role = 15 cards total (standard Coup deck)
   const roles = ["Duke", "Assassin", "Captain", "Ambassador", "Contessa"];
   const deck = [];
-  for (const r of roles) for (let i = 0; i < 4; i++) deck.push(r);
+  for (const r of roles) for (let i = 0; i < 3; i++) deck.push(r);
   return shuffle(deck);
 }
 
