@@ -620,11 +620,17 @@ wss.on("connection", (ws) => {
       }
 
 // Create room only after passing rejection checks
-if (!existing && !data.create) {
+const wantsCreate =
+  data.create === true ||
+  data.new === 1 ||
+  data.new === "1";
+
+if (!existing && !wantsCreate) {
   sendError(ws, "ROOM_NOT_FOUND", "Room not found. Check the code and try again.");
   try { ws.close(1008, "Room not found"); } catch {}
   return;
 }
+
 const room = existing || getOrCreateRoom(roomCode);
 
 const name = sanitizeName(data.name) || "Player";

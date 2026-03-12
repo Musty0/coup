@@ -3235,11 +3235,9 @@
       const ROOM = (QS.get("room") || "").trim().toUpperCase();
       const WS_OVERRIDE = QS.get("ws");
 
-      const WS_URL = WS_OVERRIDE
-        ? WS_OVERRIDE
-        : location.protocol === "https:"
-          ? `wss://${location.host}/ws`
-          : `ws://${location.host}/ws`;
+const WS_URL = WS_OVERRIDE
+  ? `wss://${location.host}/ws`
+  : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
 
       const MAX_SEATS = 4;
       const OPP_SLOTS = ["sTL", "sLM", "sTR"];
@@ -6544,7 +6542,6 @@
         try {
           ws?.close();
         } catch {}
-        connect();
       });
 
       DOM.reconnectHomeBtn.addEventListener("click", hardLeaveToHome);
@@ -6788,6 +6785,9 @@
         });
       }
 
+      // Auto connect on lobby pages
+      if (new URLSearchParams(location.search).has("room")) connect();
+
       // tab switching / bfcache
       window.addEventListener("pagehide", (e) => {
         if (e.persisted) return;
@@ -6800,10 +6800,9 @@
         if (document.visibilityState !== "visible") return;
         if (manualLeave) return;
         if (sessionStorage.getItem("coup_left") === "1") return;
-        if (!ws || ws.readyState === 3) connect();
+        if (new URLSearchParams(location.search).has("room") && (!ws || ws.readyState !== 1)) connect();
       });
 
-      connect();
     </script>
     <div
       id="winnerPopup"
