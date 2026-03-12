@@ -73,6 +73,10 @@
 
       * {
         box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
       }
       html,
       body {
@@ -159,9 +163,6 @@
         text-align: center;
       }
 
-      /* =========================================================
-         TOP BAR
-      ========================================================= */
       .topbar {
         position: sticky;
         top: 0;
@@ -195,9 +196,6 @@
         opacity: 0.85;
       }
 
-      /* =========================================================
-         MAIN LAYOUT
-      ========================================================= */
       .wrap {
         max-width: 1400px;
         margin: 0 auto;
@@ -254,9 +252,6 @@
         background: rgba(45, 212, 191, 0.85);
       }
 
-      /* =========================================================
-         TABLE + SEATS
-      ========================================================= */
       .tableWrap {
         position: relative;
         overflow: visible;
@@ -494,16 +489,6 @@
         stroke: var(--risk);
       }
 
-      * {
-        -webkit-tap-highlight-color: transparent;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-
-      /* =========================================================
-         CENTER OVERLAY
-      ========================================================= */
       .centerZone {
         position: absolute;
         left: 50%;
@@ -606,13 +591,7 @@
         font-size: 13px;
         opacity: 0.9;
       }
-      #centerStatus[data-mode="lobby"] #targetChunk {
-        display: none;
-      }
 
-      /* =========================================================
-         SEAT CONTENT
-      ========================================================= */
       .seatTop {
         display: flex;
         align-items: center;
@@ -719,9 +698,6 @@
         opacity: 0.55;
       }
 
-      /* =========================================================
-         PANELS
-      ========================================================= */
       .panelStack {
         position: fixed;
         left: 50%;
@@ -895,9 +871,6 @@
         margin-top: 6px;
       }
 
-      /* =========================================================
-         BOTTOM BAR
-      ========================================================= */
       .actionBar {
         position: fixed;
         left: 0;
@@ -906,9 +879,6 @@
         z-index: 200;
         padding: 10px 12px;
         padding-bottom: calc(10px + var(--safeB));
-        background: rgba(0, 0, 0, 0.55);
-        backdrop-filter: blur(12px);
-        border-top: 1px solid var(--line);
       }
 
       .actionInner,
@@ -1174,9 +1144,6 @@
         display: none;
       }
 
-      /* =========================================================
-         SEAT MENU
-      ========================================================= */
       .seatMenu {
         position: fixed;
         inset: 0;
@@ -1196,9 +1163,6 @@
         gap: 8px;
       }
 
-      /* =========================================================
-         MODALS
-      ========================================================= */
       #settingsBackdrop,
       #nameModalBackdrop,
       #cardZoomBackdrop,
@@ -1367,9 +1331,6 @@
         display: block;
       }
 
-      /* =========================================================
-         MOBILE
-      ========================================================= */
       @media (max-width: 520px) {
         :root {
           --infW: clamp(32px, 10vw, 42px);
@@ -1454,11 +1415,6 @@
           backdrop-filter: none;
         }
       }
-
-      /* =========================================================
-   HELP PANEL (team-seat aware, portal-safe)
-   Paste at END of CSS
-========================================================= */
 
       #helpPanel {
         position: fixed;
@@ -1589,9 +1545,6 @@
         }
       }
 
-      /* =========================================================
-   ROSTER PANEL
-========================================================= */
       #rosterPanel {
         position: fixed;
         left: 50%;
@@ -1674,9 +1627,6 @@
         }
       }
 
-      /* =========================================================
-   SIDE BAR
-========================================================= */
       #sideBar {
         position: fixed;
         right: 40px;
@@ -3188,56 +3138,13 @@
     </div>
 
     <script>
-      /**
-       * =========================================================
-       * ASSUMPTIONS (DECLARED, NOT GUESSED)
-       * =========================================================
-       * These are the ONLY shape assumptions this client makes.
-       *
-       * A1) Server sends { type:"state", state } frequently.
-       * A2) state.phase is "lobby" | "playing" | "ended".
-       *
-       * A3) LOBBY identity:
-       *     - state.players is an array of humans: { id: <humanId>, name: <string> }
-       *     - state.seats is an array length <= 4 of lobby seats:
-       *         { leaderId?: <humanId>, advisorId?: <humanId> }
-       *     - state.you.seatIndex is your lobby seat index (0..3) OR null/undefined if spectating lobby.
-       *     - state.you.isHost OR state.hostId indicates host.
-       *
-       * A4) PLAYING identity (seat-pure):
-       *     - state.players is an array of SEATS: { id:"S1".."S4", name:"Leader + Advisor", coins:number, influence:[{role, revealed}] }
-       *     - state.you.seatId is YOUR seat id ("S1".."S4") OR null/undefined if spectator.
-       *     - state.you.role is "leader" | "advisor" | null/undefined for spectator.
-       *
-       * A5) Pending actions:
-       *     - state.pendingAction may exist.
-       *     - pendingAction.type is one of engine action types (income, tax, steal, etc)
-       *     - pendingAction.stage describes interaction stages:
-       *         "awaitingChallenge" | "awaitingBlock" | "awaitingChallengeBlock" | "awaitingChoice"
-       *     - pendingAction.actorId is a seat id ("Sx")
-       *     - pendingAction.targetId (if any) is a seat id ("Sx")
-       *     - pendingAction.responders is an object mapping seatId -> "pending" | "resolved"
-       *     - lose influence appears as pendingAction.type === "loseInfluence" and pendingAction.playerId is seat id
-       *
-       * A6) Exchange private message:
-       *     - server sends { type:"private", kind:"exchangeOptions", key, keepCount, options:[{id, role}] }
-       *     - key matches the currently active exchange pendingAction key.
-       *       (This rewrite refuses to display exchange options without a matching key.)
-       *
-       * A7) Message types used (taken from your provided file):
-       *     join / leave / rename / sit / stand / startGame / action / response / teamSuggest / teamConfirm
-       */
-
-      // =========================================================
-      // Config
-      // =========================================================
       const QS = new URLSearchParams(location.search);
       const ROOM = (QS.get("room") || "").trim().toUpperCase();
       const WS_OVERRIDE = QS.get("ws");
 
-const WS_URL = WS_OVERRIDE
-  ? `wss://${location.host}/ws`
-  : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+      const WS_URL = WS_OVERRIDE
+        ? `wss://${location.host}/ws`
+        : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
 
       const MAX_SEATS = 4;
       const OPP_SLOTS = ["sTL", "sLM", "sTR"];
@@ -3255,9 +3162,6 @@ const WS_URL = WS_OVERRIDE
       // Input guard (prevents rapid double-send)
       const INPUT_GUARD_MS = 350;
 
-      // =========================================================
-      // Utilities
-      // =========================================================
       function escHtml(s) {
         return String(s ?? "")
           .replace(/&/g, "&amp;")
@@ -3442,9 +3346,6 @@ const WS_URL = WS_OVERRIDE
         );
       }
 
-      // =========================================================
-      // DOM cache
-      // =========================================================
       const $ = (id) => document.getElementById(id);
 
       const DOM = {
@@ -3459,10 +3360,6 @@ const WS_URL = WS_OVERRIDE
 
         tableWrap: $("tableWrap"),
         seats: $("seats"),
-
-        centerStatus: $("centerStatus"),
-        meCoinsInline: $("meCoinsInline"),
-        targetLabel: $("targetLabel"),
 
         bottomBar: $("bottomBar"),
         actionInner: $("actionInner"),
@@ -3528,9 +3425,6 @@ const WS_URL = WS_OVERRIDE
 
       if (DOM.roomPill) DOM.roomPill.textContent = ROOM || "";
 
-      // =========================================================
-      // Identity helpers (SEAT PURITY)
-      // =========================================================
       function getMySeatId(state) {
         // NON-NEGOTIABLE: no fallback guessing.
         // If server doesn't provide state.you.seatId, we treat you as spectator for engine purposes.
@@ -3563,9 +3457,6 @@ const WS_URL = WS_OVERRIDE
         return inf.length > 0 && inf.every((c) => c?.revealed);
       }
 
-      // =========================================================
-      // State normalization (single pass, top of render)
-      // =========================================================
       function normalizeState(raw) {
         const state = raw && typeof raw === "object" ? raw : {};
         const phase = state.phase || "lobby";
@@ -3617,9 +3508,6 @@ const WS_URL = WS_OVERRIDE
         };
       }
 
-      // =========================================================
-      // Derived modes (single authority)
-      // =========================================================
       const BottomMode = {
         none: "none",
         actions: "actions",
@@ -3805,9 +3693,6 @@ const WS_URL = WS_OVERRIDE
         return BottomMode.none;
       }
 
-      // =========================================================
-      // VM lookups
-      // =========================================================
       function playerBySeatId(vm, seatId) {
         return vm.players.find((p) => p && p.id === seatId) || null;
       }
@@ -3819,17 +3704,11 @@ const WS_URL = WS_OVERRIDE
         return p?.name || "Player";
       }
 
-      // =========================================================
-      // Roster (presence-aware, best-effort)
-      // =========================================================
       function renderRoster(vm) {
         if (!DOM.rosterList) return;
 
         const phase = vm.phase;
 
-        // =========================================================
-        // LOBBY: seats array has leaderId/advisorId (your A3)
-        // =========================================================
         if (phase === "lobby") {
           const seats = vm.seats.slice(0, MAX_SEATS);
           const hostHumanId =
@@ -3894,9 +3773,6 @@ const WS_URL = WS_OVERRIDE
           return;
         }
 
-        // =========================================================
-        // PLAYING/ENDED: state.players are seats (your A4)
-        // =========================================================
         const seats = vm.players.slice(0, MAX_SEATS);
 
         // best-effort host seat id (only if server provides something usable)
@@ -3965,9 +3841,6 @@ const WS_URL = WS_OVERRIDE
         }
       }
 
-      // =========================================================
-      // App state
-      // =========================================================
       let ws = null;
       let lastVm = null;
 
@@ -4058,9 +3931,6 @@ const WS_URL = WS_OVERRIDE
         requestAnimationFrame(frame);
       })();
 
-      // =========================================================
-      // WebSocket layer
-      // =========================================================
       function wsSend(obj) {
         if (!ws || ws.readyState !== 1) return false;
         ws.send(JSON.stringify(obj));
@@ -4212,9 +4082,6 @@ const WS_URL = WS_OVERRIDE
         if (open && popup) popup.classList.add("show");
       }
 
-      // =========================================================
-      // Rendering (single entry)
-      // =========================================================
       function render(rawState) {
         const vm = normalizeState(rawState);
 
@@ -4488,9 +4355,6 @@ const WS_URL = WS_OVERRIDE
         }
       }
 
-      // =========================================================
-      // Lobby render
-      // =========================================================
       function renderLobby(vm) {
         const seats = vm.seats.slice(0, MAX_SEATS);
         const myIdx = vm.you.lobbySeatIndex;
@@ -4650,9 +4514,6 @@ const WS_URL = WS_OVERRIDE
         document.body.appendChild(menu);
       }
 
-      // =========================================================
-      // Playing render
-      // =========================================================
       function renderPlaying(vm) {
         const mySeat = vm.you.seatId;
         const me = mySeat ? playerBySeatId(vm, mySeat) : null;
@@ -4880,9 +4741,6 @@ const WS_URL = WS_OVERRIDE
         }
       }
 
-      // =========================================================
-      // Panels + bottom bar sync
-      // =========================================================
       function setPanelVisible(el, on) {
         if (!el) return;
         el.classList.toggle("show", !!on);
@@ -5243,9 +5101,6 @@ const WS_URL = WS_OVERRIDE
         DOM.exchangeConfirmBtn.style.display = "none";
       }
 
-      // =========================================================
-      // Start button
-      // =========================================================
       function syncStartButton(vm) {
         const seats = vm.seats.slice(0, MAX_SEATS);
         const leaderCount = seats.filter((s) => s?.leaderId).length;
@@ -5259,9 +5114,6 @@ const WS_URL = WS_OVERRIDE
         DOM.startBtn.style.display = show ? "inline-block" : "none";
       }
 
-      // =========================================================
-      // Central dispatcher (ALL clicks)
-      // =========================================================
       function onUiClick(e) {
         const vm = lastVm;
         if (!vm) return;
@@ -5355,9 +5207,6 @@ const WS_URL = WS_OVERRIDE
         ripple.addEventListener("animationend", () => ripple.remove());
       });
 
-      // =========================================================
-      // Card zoom (no hover, click only; non-yours only if revealed)
-      // =========================================================
       function openCardZoom(role) {
         const key = role || "__BACK__";
         DOM.cardZoomTitle.textContent =
@@ -5393,9 +5242,6 @@ const WS_URL = WS_OVERRIDE
         openCardZoom(role);
       });
 
-      // =========================================================
-      // Settings + name modal
-      // =========================================================
       function renderSettingsContent() {
         const vm = lastVm;
         const playerList = document.getElementById("settingsPlayerList");
@@ -5596,10 +5442,6 @@ const WS_URL = WS_OVERRIDE
         closeNameModal();
       });
 
-      // =========================================================
-      // Help panel (open/close + collapsible sections)
-      // =========================================================
-
       // portal-to-body so it isn't trapped by any transformed ancestors
       const helpPortal = { parent: null, next: null, active: false };
 
@@ -5645,9 +5487,6 @@ const WS_URL = WS_OVERRIDE
         setTimeout(restoreHelpFromBody, 200); // match your .panel transition
       }
 
-      // =========================================================
-      // Roster panel
-      // =========================================================
       function openRoster() {
         setPanelVisible(DOM.rosterPanel, true);
         if (lastVm) renderRoster(lastVm);
@@ -5775,9 +5614,6 @@ const WS_URL = WS_OVERRIDE
 
       wireHelpToggles();
 
-      // =========================================================
-      // Side bar
-      // =========================================================
       const QUICK_REF_ROLES = [
         { role: "Duke", desc: "Tax +3 · Blocks Foreign Aid" },
         { role: "Assassin", desc: "Assassinate −3 · Blocked by Contessa" },
@@ -6104,9 +5940,6 @@ const WS_URL = WS_OVERRIDE
         }
       });
 
-      // =========================================================
-      // Team Chat
-      // =========================================================
       let chatHistory = [];
       let chatUnreadCount = 0;
       let chatPanelOpen = false;
@@ -6258,9 +6091,6 @@ const WS_URL = WS_OVERRIDE
         document.getElementById("emojiPicker")?.classList.remove("show");
       });
 
-      // =========================================================
-      // Swap roles
-      // =========================================================
       let swapCountdownInterval = null;
 
       function openSwapRequest(requesterName) {
@@ -6305,9 +6135,6 @@ const WS_URL = WS_OVERRIDE
           closeSwapRequest();
         });
 
-      // =========================================================
-      // Leave
-      // =========================================================
       function hardLeaveToHome() {
         manualLeave = true;
         sessionStorage.setItem("coup_left", "1");
@@ -6474,9 +6301,6 @@ const WS_URL = WS_OVERRIDE
           });
       }
 
-      // =========================================================
-      // Join error modal
-      // =========================================================
       function showJoinError(code, message) {
         joinRejectedCode = String(code || "");
         joinRejectedMessage = String(message || "Unable to join.");
@@ -6522,9 +6346,6 @@ const WS_URL = WS_OVERRIDE
         }
       });
 
-      // =========================================================
-      // Reconnect UI
-      // =========================================================
       function setDisconnectedUI(on) {
         if (on) {
           DOM.liveDot.classList.remove("live");
@@ -6546,9 +6367,6 @@ const WS_URL = WS_OVERRIDE
 
       DOM.reconnectHomeBtn.addEventListener("click", hardLeaveToHome);
 
-      // =========================================================
-      // Viewport stability
-      // =========================================================
       let baseAppH = window.innerHeight;
       function isKeyboardOpen() {
         if (!window.visualViewport) return false;
@@ -6597,9 +6415,6 @@ const WS_URL = WS_OVERRIDE
         }
       }
 
-      // =========================================================
-      // WebSocket connect (exponential backoff + panel)
-      // =========================================================
       function connect() {
         if (reconnectTimer) clearTimeout(reconnectTimer);
         setDisconnectedUI(false);
@@ -6672,22 +6487,12 @@ const WS_URL = WS_OVERRIDE
           if (msg.type === "swapDeclined") {
             closeSwapRequest();
             // brief toast to requester
-            const t = document.createElement("div");
-            t.textContent = `${msg.declinerName} declined the swap.`;
-            t.style.cssText =
-              "position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#eaf2ff;padding:8px 16px;border-radius:999px;font-size:13px;z-index:9999;pointer-events:none;";
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 3000);
+            showToast(`${msg.declinerName} declined the swap.`);
             return;
           }
 
           if (msg.type === "swapExpired") {
-            const t = document.createElement("div");
-            t.textContent = "Swap request expired.";
-            t.style.cssText =
-              "position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#eaf2ff;padding:8px 16px;border-radius:999px;font-size:13px;z-index:9999;pointer-events:none;";
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 3000);
+            showToast("Swap request expired.");
             return;
           }
 
@@ -6800,9 +6605,12 @@ const WS_URL = WS_OVERRIDE
         if (document.visibilityState !== "visible") return;
         if (manualLeave) return;
         if (sessionStorage.getItem("coup_left") === "1") return;
-        if (new URLSearchParams(location.search).has("room") && (!ws || ws.readyState !== 1)) connect();
+        if (
+          new URLSearchParams(location.search).has("room") &&
+          (!ws || ws.readyState !== 1)
+        )
+          connect();
       });
-
     </script>
     <div
       id="winnerPopup"
