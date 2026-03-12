@@ -3235,9 +3235,9 @@
       const ROOM = (QS.get("room") || "").trim().toUpperCase();
       const WS_OVERRIDE = QS.get("ws");
 
-      const WS_URL = WS_OVERRIDE
-        ? `wss://${location.host}/ws`
-        : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
+const WS_URL = WS_OVERRIDE
+  ? `wss://${location.host}/ws`
+  : `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
 
       const MAX_SEATS = 4;
       const OPP_SLOTS = ["sTL", "sLM", "sTR"];
@@ -6800,12 +6800,9 @@
         if (document.visibilityState !== "visible") return;
         if (manualLeave) return;
         if (sessionStorage.getItem("coup_left") === "1") return;
-        if (
-          new URLSearchParams(location.search).has("room") &&
-          (!ws || ws.readyState !== 1)
-        )
-          connect();
+        if (new URLSearchParams(location.search).has("room") && (!ws || ws.readyState !== 1)) connect();
       });
+
     </script>
     <div
       id="winnerPopup"
