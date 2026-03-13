@@ -1227,13 +1227,17 @@ if (data.type === "swapDecline") {
 }
 
 // CHAT (lobby + playing, seat members only)
+const VALID_CHIPS = new Set(['bluffing', 'trust', 'block', 'target']);
+
 if (data.type === "chat") {
   const info = seatInfoForHuman(room, client.id);
   if (!info) return;
-  const text = (data.text || "").toString().trim().slice(0, 200);
-  if (!text) return;
+  const chip = VALID_CHIPS.has(data.chip) ? data.chip : null;
+  const text = chip ? '' : (data.text || "").toString().trim().slice(0, 200);
+  if (!chip && !text) return;
   const { seatIndex } = info;
-  const entry = { humanId: client.id, name: client.name, text, t: Date.now() };
+  const chipTarget = typeof data.chipTarget === 'string' ? data.chipTarget.slice(0, 20) : null;
+  const entry = { humanId: client.id, name: client.name, text, chip, chipTarget, t: Date.now() };
   room.seatChats[seatIndex].push(entry);
   if (room.seatChats[seatIndex].length > 50) room.seatChats[seatIndex].shift();
   const seat = room.seats[seatIndex];

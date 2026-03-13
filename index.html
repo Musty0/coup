@@ -230,6 +230,11 @@
         gap: 3px;
         background: rgba(255, 255, 255, 0.03);
         border-bottom: 1px solid var(--line);
+        flex-shrink: 0;
+      }
+      #lastAction {
+        height: 24px;
+        overflow: hidden;
       }
 
       .turnPill {
@@ -1337,6 +1342,12 @@
           --actionH: 112px;
           --safeB: env(safe-area-inset-bottom, 0px);
         }
+        .tableWrap {
+          overflow: hidden;
+        }
+        #bluffTracker {
+          display: none !important;
+        }
 
         .scene {
           border: none;
@@ -2097,6 +2108,92 @@
         justify-content: center;
         flex-shrink: 0;
       }
+
+      .chipRow {
+        display: flex;
+        gap: 5px;
+        padding: 5px 8px 0;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+      }
+      .chipBtn {
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--ink);
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        line-height: 1.4;
+      }
+      .chipBtn:active {
+        transform: scale(0.93);
+        background: rgba(255, 255, 255, 0.13);
+      }
+      .chatMsgChip {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 11px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      #bluffTrackerPopup {
+        position: fixed;
+        inset: 0;
+        z-index: 510;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.45);
+      }
+      #bluffTrackerPopup.show {
+        display: flex;
+      }
+      #bluffTrackerInner {
+        background: rgba(10, 10, 20, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 18px;
+        padding: 16px;
+        backdrop-filter: blur(10px);
+        width: min(340px, 90vw);
+        max-height: 70vh;
+        overflow-y: auto;
+        display: grid;
+        gap: 8px;
+      }
+      .bluffRow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 7px 10px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 12px;
+      }
+      .bluffRoleImg {
+        width: 32px;
+        height: 48px;
+        object-fit: contain;
+        border-radius: 5px;
+        flex-shrink: 0;
+      }
+      .bluffRoleInfo {
+        flex: 1;
+        min-width: 0;
+      }
+      .bluffRoleName {
+        font-weight: 900;
+        font-size: 13px;
+      }
+      .bluffClaimer {
+        opacity: 0.65;
+        margin-top: 1px;
+      }
     </style>
   </head>
 
@@ -2176,6 +2273,24 @@
             >
               🂠 <span id="deckCountNum">15</span>
             </div>
+          </div>
+
+          <div
+            id="bluffTracker"
+            style="
+              display: none;
+              margin-top: 4px;
+              cursor: pointer;
+              background: rgba(0, 0, 0, 0.35);
+              border: 1px solid rgba(255, 255, 255, 0.18);
+              border-radius: 999px;
+              padding: 3px 10px;
+              font-size: 11px;
+              font-weight: 900;
+              pointer-events: auto;
+            "
+          >
+            🎭 Claims
           </div>
 
           <div id="seats"></div>
@@ -2795,6 +2910,12 @@
     <div id="chatPanel">
       <div class="chatHeader">Team Chat</div>
       <div id="chatMessages" class="chatMessages"></div>
+      <div class="chipRow" id="chipRow">
+        <button class="chipBtn" data-chip="bluffing">🤥 Bluffing</button>
+        <button class="chipBtn" data-chip="trust">✅ Trust</button>
+        <button class="chipBtn" data-chip="block">⚠️ Block</button>
+        <button class="chipBtn" data-chip="target">🎯 Targeting</button>
+      </div>
       <div class="chatInputRow" style="position: relative">
         <div id="emojiPicker">
           <button class="emojiPickerBtn" data-emoji="😂">😂</button>
@@ -3092,6 +3213,7 @@
           <button id="settingsHostBtn" style="display: none">
             Host Settings
           </button>
+          <button id="settingsProfilesBtn">Player Profiles</button>
           <button id="settingsLogBtn">Log</button>
           <button
             id="settingsLeaveBtn"
@@ -3297,6 +3419,11 @@
 
       const myHumanId = getOrCreateSessionId();
       let myName = getOrCreateName();
+      // persist device id to localStorage so stats survive across sessions
+      if (!localStorage.getItem("coup_device_id")) {
+        localStorage.setItem("coup_device_id", myHumanId);
+      }
+      const myDeviceId = localStorage.getItem("coup_device_id");
 
       if (!/^[A-Z]{4}$/.test(ROOM)) {
         sessionStorage.setItem("coup_left", "1");
@@ -3732,32 +3859,32 @@
               const clickable =
                 isLeaderFree || isAdvisorFree || isMeLeader || isMeAdvisor;
               return `
-              <div class="rosterSeat" ${clickable ? `data-seat-click="${idx}"` : ""} style="${clickable ? "cursor:pointer;" : ""}">
-                <div class="rosterSeatTitle">Seat ${idx + 1}</div>
+                    <div class="rosterSeat" ${clickable ? `data-seat-click="${idx}"` : ""} style="${clickable ? "cursor:pointer;" : ""}">
+                      <div class="rosterSeatTitle">Seat ${idx + 1}</div>
 
-                <div class="rosterRow">
-                  <div class="rosterLeft">
-                    <span class="rosterName">${escHtml(leaderName || "Empty")}</span>
-                    ${leaderName ? `<span class="rosterRoleTag">(L)</span>` : ""}
-                    ${isMeLeader ? `<span class="rosterYouTag">You</span>` : ""}
-                    ${isHostLeader ? `<span class="rosterHostTag">Host</span>` : ""}
-                  </div>
-                </div>
+                      <div class="rosterRow">
+                        <div class="rosterLeft">
+                          <span class="rosterName">${escHtml(leaderName || "Empty")}</span>
+                          ${leaderName ? `<span class="rosterRoleTag">(L)</span>` : ""}
+                          ${isMeLeader ? `<span class="rosterYouTag">You</span>` : ""}
+                          ${isHostLeader ? `<span class="rosterHostTag">Host</span>` : ""}
+                        </div>
+                      </div>
 
-                ${
-                  advisorName
-                    ? `
-                <div class="rosterRow">
-                  <div class="rosterLeft">
-                    <span class="rosterName">${escHtml(advisorName)}</span>
-                    <span class="rosterRoleTag">(A)</span>
-                    ${isMeAdvisor ? `<span class="rosterYouTag">You</span>` : ""}
-                  </div>
-                </div>`
-                    : ""
-                }
-              </div>
-            `;
+                      ${
+                        advisorName
+                          ? `
+                      <div class="rosterRow">
+                        <div class="rosterLeft">
+                          <span class="rosterName">${escHtml(advisorName)}</span>
+                          <span class="rosterRoleTag">(A)</span>
+                          ${isMeAdvisor ? `<span class="rosterYouTag">You</span>` : ""}
+                        </div>
+                      </div>`
+                          : ""
+                      }
+                    </div>
+                  `;
             })
             .join("");
 
@@ -3796,32 +3923,32 @@
               vm.you.spectator && seatId === spectatorFollowedSeatId;
 
             return `
-                    <div class="rosterSeat" ${vm.you.spectator && seatId ? `data-spectate-seat="${escHtml(seatId)}"` : ""} style="${vm.you.spectator && seatId ? "cursor:pointer;" : ""}${isFollowed ? "border-color:rgba(45,212,191,0.4);background:rgba(45,212,191,0.07);" : ""}">
-                      <div class="rosterSeatTitle">${escHtml(seatId || `Seat ${i + 1}`)}</div>
+                          <div class="rosterSeat" ${vm.you.spectator && seatId ? `data-spectate-seat="${escHtml(seatId)}"` : ""} style="${vm.you.spectator && seatId ? "cursor:pointer;" : ""}${isFollowed ? "border-color:rgba(45,212,191,0.4);background:rgba(45,212,191,0.07);" : ""}">
+                            <div class="rosterSeatTitle">${escHtml(seatId || `Seat ${i + 1}`)}</div>
 
-                      <div class="rosterRow">
-                        <div class="rosterLeft">
-                          <span class="rosterName">${escHtml(leaderName || "Seat")}</span>
-                          <span class="rosterRoleTag">(L)</span>
-                          ${isMySeat && myRole === "leader" ? `<span class="rosterYouTag">You</span>` : ""}
-                          ${isHostSeat ? `<span class="rosterHostTag">Host</span>` : ""}
-                        </div>
-                      </div>
+                            <div class="rosterRow">
+                              <div class="rosterLeft">
+                                <span class="rosterName">${escHtml(leaderName || "Seat")}</span>
+                                <span class="rosterRoleTag">(L)</span>
+                                ${isMySeat && myRole === "leader" ? `<span class="rosterYouTag">You</span>` : ""}
+                                ${isHostSeat ? `<span class="rosterHostTag">Host</span>` : ""}
+                              </div>
+                            </div>
 
-                      ${
-                        advisorName
-                          ? `
-                      <div class="rosterRow">
-                        <div class="rosterLeft">
-                          <span class="rosterName">${escHtml(advisorName)}</span>
-                          <span class="rosterRoleTag">(A)</span>
-                          ${isMySeat && myRole === "advisor" ? `<span class="rosterYouTag">You</span>` : ""}
-                        </div>
-                      </div>`
-                          : ""
-                      }
-                    </div>
-                  `;
+                            ${
+                              advisorName
+                                ? `
+                            <div class="rosterRow">
+                              <div class="rosterLeft">
+                                <span class="rosterName">${escHtml(advisorName)}</span>
+                                <span class="rosterRoleTag">(A)</span>
+                                ${isMySeat && myRole === "advisor" ? `<span class="rosterYouTag">You</span>` : ""}
+                              </div>
+                            </div>`
+                                : ""
+                            }
+                          </div>
+                        `;
           })
           .join("");
 
@@ -3868,6 +3995,88 @@
       let joinRejectedMessage = "";
 
       let prevCoinMap = new Map();
+      let gameEndRecorded = false;
+
+      function getStats() {
+        try {
+          return JSON.parse(localStorage.getItem("coup_stats_v1") || "{}");
+        } catch {
+          return {};
+        }
+      }
+      function saveStats(s) {
+        try {
+          localStorage.setItem("coup_stats_v1", JSON.stringify(s));
+        } catch {}
+      }
+      function newStat(name) {
+        return {
+          gamesPlayed: 0,
+          wins: 0,
+          timesLeader: 0,
+          timesAdvisor: 0,
+          cardCounts: {},
+          isHuman: true,
+          name: name || "",
+        };
+      }
+      function recordGameStart(vm) {
+        const stats = getStats();
+        const rawSeats = vm.raw?.seats || [];
+        for (const p of vm.players) {
+          if (!p?.name) continue;
+          const seatIndex = parseInt((p.id || "").replace("S", "")) - 1;
+          const rawSeat = rawSeats[seatIndex] || {};
+          if (rawSeat.leaderId?.startsWith("bot-")) continue;
+          const [lName, aName] = splitTeamName(p.name);
+          const isMe = p.id === vm.you.seatId;
+          const leaderKey =
+            isMe && vm.you.role === "leader" ? myDeviceId : lName;
+          const advisorKey =
+            isMe && vm.you.role === "advisor" ? myDeviceId : aName;
+          if (lName) {
+            const s = stats[leaderKey] || newStat(lName);
+            s.name = lName;
+            s.gamesPlayed++;
+            s.timesLeader++;
+            s.isHuman = true;
+            if (isMe && vm.you.role === "leader")
+              (p.influence || []).forEach((c) => {
+                if (c?.role && c.role !== "?")
+                  s.cardCounts[c.role] = (s.cardCounts[c.role] || 0) + 1;
+              });
+            stats[leaderKey] = s;
+          }
+          if (aName) {
+            const s = stats[advisorKey] || newStat(aName);
+            s.name = aName;
+            s.gamesPlayed++;
+            s.timesAdvisor++;
+            s.isHuman = true;
+            if (isMe && vm.you.role === "advisor")
+              (p.influence || []).forEach((c) => {
+                if (c?.role && c.role !== "?")
+                  s.cardCounts[c.role] = (s.cardCounts[c.role] || 0) + 1;
+              });
+            stats[advisorKey] = s;
+          }
+        }
+        saveStats(stats);
+      }
+      function recordGameEnd(vm) {
+        const winner = vm.players.find((p) =>
+          p.influence?.some((c) => !c.revealed),
+        );
+        if (!winner) return;
+        const stats = getStats();
+        const [lName, aName] = splitTeamName(winner.name || "");
+        const isMe = winner.id === vm.you.seatId;
+        const lKey = isMe && vm.you.role === "leader" ? myDeviceId : lName;
+        const aKey = isMe && vm.you.role === "advisor" ? myDeviceId : aName;
+        if (lName && stats[lKey]) stats[lKey].wins++;
+        if (aName && stats[aKey]) stats[aKey].wins++;
+        saveStats(stats);
+      }
       let vibrationEnabled = localStorage.getItem("coup_vibration") !== "0";
       let shownTimerToast = false;
       let lastTimerToastKey = null;
@@ -4020,12 +4229,23 @@
 
       // inject popup into body once
       (function () {
+        const bluffPop = document.createElement("div");
+        bluffPop.id = "bluffTrackerPopup";
+        bluffPop.innerHTML = `<div id="bluffTrackerInner"></div>`;
+        document.body.appendChild(bluffPop);
+
         const popup = document.createElement("div");
         popup.id = "roleTrackerPopup";
         popup.innerHTML = `<div id="roleTrackerInner"></div>`;
         document.body.appendChild(popup);
         popup.addEventListener("click", (e) => {
           if (e.target === popup) popup.classList.remove("show");
+        });
+        popup.addEventListener("click", (e) => {
+          const el = e.target.closest("[data-claims-role]");
+          if (!el || !lastVm) return;
+          popup.classList.remove("show");
+          openBluffTracker(lastVm, el.dataset.claimsRole);
         });
       })();
 
@@ -4050,6 +4270,9 @@
           0,
         );
         const deckRemaining = 15 - totalDealt;
+        const bluffEl = document.getElementById("bluffTracker");
+        if (bluffEl) bluffEl.style.display = "";
+
         if (deckCountEl) {
           deckCountEl.style.display = "";
           if (deckCountNum) deckCountNum.textContent = deckRemaining;
@@ -4070,12 +4293,12 @@
           inner.innerHTML = ALL_ROLES.map((role) => {
             const unseen = Math.max(0, ROLE_TOTAL - (revealedCount[role] || 0));
             return `
-                    <div class="roleTrackerItem ${unseen === 0 ? "zero" : ""}">
-                      <img class="roleTrackerImg" src="${ROLE_CARD_IMG[role]}" alt="${role}" />
-                      <span class="roleTrackerLabel">${role}</span>
-                      <span class="roleTrackerCount">${unseen}</span>
-                    </div>
-                  `;
+      <div class="roleTrackerItem ${unseen === 0 ? "zero" : ""}" data-claims-role="${role}" style="cursor:pointer;">
+                            <img class="roleTrackerImg" src="${ROLE_CARD_IMG[role]}" alt="${role}" />
+                            <span class="roleTrackerLabel">${role}</span>
+         <span class="roleTrackerCount">${unseen}</span>
+                          </div>
+                        `;
           }).join("");
         }
 
@@ -4228,7 +4451,11 @@
           maybeShowPlayingTour(vm);
 
           // Card deal on game start
-          if (isNewGame) triggerCardDeal();
+          if (isNewGame) {
+            triggerCardDeal();
+            gameEndRecorded = false;
+            recordGameStart(vm);
+          }
 
           // Turn transition fade
           if (vm.turnPlayerId !== prevTurnPlayerId) {
@@ -4307,10 +4534,10 @@
           const lastActionEl = document.getElementById("lastAction");
           if (lastActionEl) {
             const gameLog = vm.raw?.gameLog || [];
-            const last3 = gameLog.slice(-3).reverse();
+            const last3 = gameLog.slice(-2).reverse();
             lastActionEl.innerHTML = last3
               .map((e, i) => {
-                const opacity = i === 0 ? 0.75 : i === 1 ? 0.4 : 0.2;
+                const opacity = i === 0 ? 0.75 : 0.35;
                 const fontSize = i === 0 ? "11px" : "10px";
                 return `<div style="opacity:${opacity};font-size:${fontSize};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px;">${escHtml(e.msg)}</div>`;
               })
@@ -4321,6 +4548,10 @@
           const winnerPopup = document.getElementById("winnerPopup");
           if (winnerPopup) {
             if (vm.phase === "ended") {
+              if (!gameEndRecorded) {
+                gameEndRecorded = true;
+                recordGameEnd(vm);
+              }
               const winner = vm.players.find((p) =>
                 p.influence?.some((c) => !c.revealed),
               );
@@ -4380,23 +4611,23 @@
             : "";
 
           seatEl.innerHTML = `
-                  <div class="seatTop">
-                    <div class="seatIdentity">
-                      <div class="seatAvatar" ${avatarStyle(iconSrcForSeatIndex(vm, seatIndex))}></div>
-                      <div class="seatNames">
-                        <div class="seatName">${escHtml(leaderName || "Empty")}</div>
-                        ${advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="infs">
-                    <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
-                    <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
-                  </div>
-                  <div class="seatMeta" style="visibility:hidden">
-                    <span class="coinStack"><span class="coinIcon"></span> 0</span>
-                  </div>
-                `;
+                        <div class="seatTop">
+                          <div class="seatIdentity">
+                            <div class="seatAvatar" ${avatarStyle(iconSrcForSeatIndex(vm, seatIndex))}></div>
+                            <div class="seatNames">
+                              <div class="seatName">${escHtml(leaderName || "Empty")}</div>
+                              ${advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
+                            </div>
+                          </div>
+                        </div>
+                        <div class="infs">
+                          <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
+                          <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
+                        </div>
+                        <div class="seatMeta" style="visibility:hidden">
+                          <span class="coinStack"><span class="coinIcon"></span> 0</span>
+                        </div>
+                      `;
 
           seatEl.addEventListener("click", () =>
             openSeatMenu(vm, seatIndex, seatData),
@@ -4415,19 +4646,19 @@
 
         if (myIdx == null) {
           bottom.innerHTML = `
-                <div class="seatTop">
-                  <div class="seatIdentity">
-                    <div class="seatAvatar"></div>
-                    <div class="seatNames">
-                      <div class="seatName">${escHtml(myName || "You")}</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="infs">
-                  <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
-                  <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
-                </div>
-              `;
+                      <div class="seatTop">
+                        <div class="seatIdentity">
+                          <div class="seatAvatar"></div>
+                          <div class="seatNames">
+                            <div class="seatName">${escHtml(myName || "You")}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="infs">
+                        <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
+                        <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
+                      </div>
+                    `;
         } else {
           const mySeatObj = seats[myIdx] || null;
           const leaderName = mySeatObj?.leaderId
@@ -4440,20 +4671,20 @@
           const subName = leaderName ? advisorName : "";
 
           bottom.innerHTML = `
-      <div class="seatTop">
-                        <div class="seatIdentity">
-                          <div class="seatAvatar" ${avatarStyle(iconSrcForSeatIndex(vm, myIdx))}></div>
-                          <div class="seatNames">
-                            <div class="seatName">${escHtml(topName)}</div>
-                            ${leaderName && advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
-                          </div>
-                        </div>
-                      </div>
-                      <div class="infs">
-                        <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
-                        <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
-                      </div>
-                    `;
+            <div class="seatTop">
+                              <div class="seatIdentity">
+                                <div class="seatAvatar" ${avatarStyle(iconSrcForSeatIndex(vm, myIdx))}></div>
+                                <div class="seatNames">
+                                  <div class="seatName">${escHtml(topName)}</div>
+                                  ${leaderName && advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="infs">
+                              <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
+                              <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" /></div>
+                            </div>
+                          `;
         }
 
         DOM.seats.appendChild(bottom);
@@ -4478,14 +4709,14 @@
         const menu = document.createElement("div");
         menu.className = "seatMenu";
         menu.innerHTML = `
-                                  <div class="seatMenuCard" role="dialog" aria-label="Seat actions">
-                                    ${isLeaderFree ? `<button data-role="leader">Join as Leader</button>` : ""}
-                                    ${isAdvisorFree ? `<button data-role="advisor">Join as Advisor</button>` : ""}
-      ${canSwap ? `<button data-role="swap">⇄ Swap Roles</button>` : ""}
-                    ${canLeaveThisSeat ? `<button data-role="stand">Leave Seat</button>` : ""}
-                                    <button data-role="cancel">Cancel</button>
-                                  </div>
-                                `;
+                                        <div class="seatMenuCard" role="dialog" aria-label="Seat actions">
+                                          ${isLeaderFree ? `<button data-role="leader">Join as Leader</button>` : ""}
+                                          ${isAdvisorFree ? `<button data-role="advisor">Join as Advisor</button>` : ""}
+            ${canSwap ? `<button data-role="swap">⇄ Swap Roles</button>` : ""}
+                          ${canLeaveThisSeat ? `<button data-role="stand">Leave Seat</button>` : ""}
+                                          <button data-role="cancel">Cancel</button>
+                                        </div>
+                                      `;
 
         menu.addEventListener("click", (e) => {
           if (e.target === menu) return menu.remove();
@@ -4554,42 +4785,45 @@
           const [leaderName, advisorName] = splitTeamName(p.name); // Assuming a helper for splitting roles
 
           seatEl.innerHTML = `
-                      <div class="seatTop">
-                        <div class="seatIdentity">
-      <div class="avatarWrap" data-timer-seat="${escHtml(p.id)}">
-      <svg class="timerRing" viewBox="0 0 50 50">
-        <circle class="timerRingBg" cx="25" cy="25" r="21"/>
-        <circle class="timerRingFg" cx="25" cy="25" r="21"/>
-      </svg>
-                            <div class="seatAvatar" ${avatarStyle(iconSrcForSeatId(vm, p.id))}></div>
-                          </div>
-                          <div class="seatNames">
-      <div class="seatName">${escHtml(leaderName || advisorName || "Empty")}${advisorTarget && p.id === advisorTarget ? ' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:rgba(45,212,191,0.9);vertical-align:middle;margin-left:4px;flex-shrink:0;"></span>' : ""}</div>
-                            ${leaderName && advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
-                          </div>
-                        </div>
-                      </div>
-                      <div class="infs">
-                        ${(inf || [])
-                          .map((c) => {
-                            const showFace =
-                              c?.revealed ||
-                              (vm.you.spectator && c?.role && c.role !== "?");
-                            const src = showFace
-                              ? ROLE_CARD_IMG[c.role] || ROLE_CARD_IMG.__BACK__
-                              : ROLE_CARD_IMG.__BACK__;
-                            const roleAttr = escHtml(c?.role || "");
-                            return `
-                              <div class="infCard ${c?.revealed ? "revealed" : ""}" data-role="${roleAttr}">
-                                <img src="${src}" alt="" />
-                              </div>`;
-                          })
-                          .join("")}
-      </div>
-                      <div class="seatMeta">
-                        <span class="coinStack"><span class="coinIcon"></span> ${Number(p.coins ?? 0)}</span>
-                      </div>
-                    `;
+                            <div class="seatTop">
+                              <div class="seatIdentity">
+            <div class="avatarWrap" data-timer-seat="${escHtml(p.id)}">
+            <svg class="timerRing" viewBox="0 0 50 50">
+              <circle class="timerRingBg" cx="25" cy="25" r="21"/>
+              <circle class="timerRingFg" cx="25" cy="25" r="21"/>
+            </svg>
+                                  <div class="seatAvatar" ${avatarStyle(iconSrcForSeatId(vm, p.id))}></div>
+                                </div>
+                                <div class="seatNames">
+            <div class="seatName">${escHtml(leaderName || advisorName || "Empty")}${advisorTarget && p.id === advisorTarget ? ' <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:rgba(45,212,191,0.9);vertical-align:middle;margin-left:4px;flex-shrink:0;"></span>' : ""}</div>
+                                  ${leaderName && advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="infs">
+                              ${(inf || [])
+                                .map((c) => {
+                                  const showFace =
+                                    c?.revealed ||
+                                    (vm.you.spectator &&
+                                      c?.role &&
+                                      c.role !== "?");
+                                  const src = showFace
+                                    ? ROLE_CARD_IMG[c.role] ||
+                                      ROLE_CARD_IMG.__BACK__
+                                    : ROLE_CARD_IMG.__BACK__;
+                                  const roleAttr = escHtml(c?.role || "");
+                                  return `
+                                    <div class="infCard ${c?.revealed ? "revealed" : ""}" data-role="${roleAttr}">
+                                      <img src="${src}" alt="" />
+                                    </div>`;
+                                })
+                                .join("")}
+            </div>
+                            <div class="seatMeta">
+                              <span class="coinStack"><span class="coinIcon"></span> ${Number(p.coins ?? 0)}</span>
+                            </div>
+                          `;
 
           seatEl.addEventListener("click", (e) => {
             if (vm.you.spectator) {
@@ -4615,36 +4849,36 @@
           if (me) {
             const [leaderName, advisorName] = splitTeamName(me.name); // Split the names for Leader and Advisor
             you.innerHTML = `
-              <div class="seatTop">
-                <div class="seatIdentity">
-      <div class="avatarWrap" data-timer-seat="${escHtml(vm.you.seatId || "")}">
-      <svg class="timerRing" viewBox="0 0 50 50">
-        <circle class="timerRingBg" cx="25" cy="25" r="21"/>
-        <circle class="timerRingFg" cx="25" cy="25" r="21"/>
-      </svg>
-                    <div class="seatAvatar" ${avatarStyle(iconSrcForSeatId(vm, vm.you.seatId))}></div>
-                  </div>
-                  <div class="seatNames">
-      <div class="seatName">${escHtml(leaderName || advisorName || "Empty")}</div>
-                    ${leaderName && advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
-                  </div>
-                </div>
-              </div>
-              <div class="seatMeta">
-                <span class="coinStack"><span class="coinIcon"></span> ${Number(me.coins ?? 0)}</span>
-              </div>
-              <div class="infs">
-                ${(me.influence || [])
-                  .map((c) => {
-                    const src =
-                      c?.revealed || (c?.role && c.role !== "?")
-                        ? ROLE_CARD_IMG[c.role] || ROLE_CARD_IMG.__BACK__
-                        : ROLE_CARD_IMG.__BACK__;
-                    return `<div class="infCard ${c?.revealed ? "revealed" : ""}" data-role="${escHtml(c?.role || "")}"><img src="${src}" alt="" /></div>`;
-                  })
-                  .join("")}
-              </div>
-            `;
+                    <div class="seatTop">
+                      <div class="seatIdentity">
+            <div class="avatarWrap" data-timer-seat="${escHtml(vm.you.seatId || "")}">
+            <svg class="timerRing" viewBox="0 0 50 50">
+              <circle class="timerRingBg" cx="25" cy="25" r="21"/>
+              <circle class="timerRingFg" cx="25" cy="25" r="21"/>
+            </svg>
+                          <div class="seatAvatar" ${avatarStyle(iconSrcForSeatId(vm, vm.you.seatId))}></div>
+                        </div>
+                        <div class="seatNames">
+            <div class="seatName">${escHtml(leaderName || advisorName || "Empty")}</div>
+                          ${leaderName && advisorName ? `<div class="seatName">${escHtml(advisorName)}</div>` : ""}
+                        </div>
+                      </div>
+                    </div>
+                    <div class="seatMeta">
+                      <span class="coinStack"><span class="coinIcon"></span> ${Number(me.coins ?? 0)}</span>
+                    </div>
+                    <div class="infs">
+                      ${(me.influence || [])
+                        .map((c) => {
+                          const src =
+                            c?.revealed || (c?.role && c.role !== "?")
+                              ? ROLE_CARD_IMG[c.role] || ROLE_CARD_IMG.__BACK__
+                              : ROLE_CARD_IMG.__BACK__;
+                          return `<div class="infCard ${c?.revealed ? "revealed" : ""}" data-role="${escHtml(c?.role || "")}"><img src="${src}" alt="" /></div>`;
+                        })
+                        .join("")}
+                    </div>
+                  `;
           } else {
             const followed = spectatorFollowedSeatId
               ? playerBySeatId(vm, spectatorFollowedSeatId)
@@ -4652,55 +4886,56 @@
             if (followed) {
               const [fLeader, fAdvisor] = splitTeamName(followed.name);
               you.innerHTML = `
-                      <div class="seatTop">
-                        <div class="seatIdentity">
-      <div class="avatarWrap" data-timer-seat="${escHtml(followed.id)}">
-      <svg class="timerRing" viewBox="0 0 50 50">
-        <circle class="timerRingBg" cx="25" cy="25" r="21"/>
-        <circle class="timerRingFg" cx="25" cy="25" r="21"/>
-      </svg>
-                            <div class="seatAvatar" ${avatarStyle(iconSrcForSeatId(vm, followed.id))}></div>
-                          </div>
-                          <div class="seatNames">
-                            <div class="seatName">${escHtml(fLeader || fAdvisor || "Seat")}</div>
-                            ${fLeader && fAdvisor ? `<div class="seatName">${escHtml(fAdvisor)}</div>` : ""}
-                          </div>
-                        </div>
-                        <span style="font-size:11px;opacity:0.45;font-weight:900;flex-shrink:0;">👁 Following</span>
-                      </div>
-                      <div class="seatMeta">
-                        <span class="coinStack"><span class="coinIcon"></span> ${Number(followed.coins ?? 0)}</span>
-                      </div>
-                      <div class="infs">
-                        ${(followed.influence || [])
-                          .map((c) => {
-                            const src =
-                              ROLE_CARD_IMG[c.role] || ROLE_CARD_IMG.__BACK__;
-                            return `<div class="infCard ${c?.revealed ? "revealed" : ""}" data-role="${escHtml(c?.role || "")}"><img src="${src}" alt="" /></div>`;
-                          })
-                          .join("")}
-                      </div>
-                    `;
+                            <div class="seatTop">
+                              <div class="seatIdentity">
+            <div class="avatarWrap" data-timer-seat="${escHtml(followed.id)}">
+            <svg class="timerRing" viewBox="0 0 50 50">
+              <circle class="timerRingBg" cx="25" cy="25" r="21"/>
+              <circle class="timerRingFg" cx="25" cy="25" r="21"/>
+            </svg>
+                                  <div class="seatAvatar" ${avatarStyle(iconSrcForSeatId(vm, followed.id))}></div>
+                                </div>
+                                <div class="seatNames">
+                                  <div class="seatName">${escHtml(fLeader || fAdvisor || "Seat")}</div>
+                                  ${fLeader && fAdvisor ? `<div class="seatName">${escHtml(fAdvisor)}</div>` : ""}
+                                </div>
+                              </div>
+                              <span style="font-size:11px;opacity:0.45;font-weight:900;flex-shrink:0;">👁 Following</span>
+                            </div>
+                            <div class="seatMeta">
+                              <span class="coinStack"><span class="coinIcon"></span> ${Number(followed.coins ?? 0)}</span>
+                            </div>
+                            <div class="infs">
+                              ${(followed.influence || [])
+                                .map((c) => {
+                                  const src =
+                                    ROLE_CARD_IMG[c.role] ||
+                                    ROLE_CARD_IMG.__BACK__;
+                                  return `<div class="infCard ${c?.revealed ? "revealed" : ""}" data-role="${escHtml(c?.role || "")}"><img src="${src}" alt="" /></div>`;
+                                })
+                                .join("")}
+                            </div>
+                          `;
             } else {
               you.innerHTML = `
-                      <div class="seatTop">
-                        <div class="seatIdentity">
-                          <div class="avatarWrap" data-timer-seat="">
-                            <div class="seatAvatar"></div>
-                          </div>
-                          <div class="seatNames">
-                            <div class="seatName" style="opacity:0.45;">👁 Spectating</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="seatMeta">
-                        <span class="muted tiny">Tap a seat to follow</span>
-                      </div>
-                      <div class="infs">
-                        <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" alt="" /></div>
-                        <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" alt="" /></div>
-                      </div>
-                    `;
+                            <div class="seatTop">
+                              <div class="seatIdentity">
+                                <div class="avatarWrap" data-timer-seat="">
+                                  <div class="seatAvatar"></div>
+                                </div>
+                                <div class="seatNames">
+                                  <div class="seatName" style="opacity:0.45;">👁 Spectating</div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="seatMeta">
+                              <span class="muted tiny">Tap a seat to follow</span>
+                            </div>
+                            <div class="infs">
+                              <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" alt="" /></div>
+                              <div class="infCard"><img src="${ROLE_CARD_IMG.__BACK__}" alt="" /></div>
+                            </div>
+                          `;
             }
           }
 
@@ -4726,6 +4961,18 @@
       }
 
       function onTargetTap(vm, seatId) {
+        // chip pending: send chip message for this seat and reopen chat
+        if (pendingChip) {
+          const [targetName] = splitTeamName(
+            vm.players.find((p) => p.id === seatId)?.name || seatId,
+          );
+          wsSend({ type: "chat", chip: pendingChip, chipTarget: targetName });
+          pendingChip = null;
+          resetChipRow();
+          openChatPanel();
+          return;
+        }
+
         setSelectedTargetSeat(vm, seatId);
 
         // advisor = suggest only
@@ -5277,15 +5524,15 @@
               const canKick = amHost && !isMe;
               const canSpectate = isMe && vm?.phase === "lobby";
               return `
-                  <div class="settingsPlayer">
-                    <span class="settingsPlayerName">${escHtml(p.name)}</span>
-                    ${isHost ? `<span class="settingsHostTag">Host</span>` : ""}
-                    ${isMe ? `<span style="font-size:10px;opacity:0.5">You</span>` : ""}
-                    ${canDelegate ? `<button class="settingsMakeHostBtn" data-delegate="${escHtml(p.id)}">Make host</button>` : ""}
-                    ${canKick ? `<button class="settingsMakeHostBtn" data-kick="${escHtml(p.id)}" style="border-color:rgba(251,113,133,0.3);background:rgba(251,113,133,0.08);">Kick</button>` : ""}
-                    ${canSpectate ? `<button class="settingsMakeHostBtn" data-spectate="1" style="border-color:rgba(251,113,133,0.3);background:rgba(251,113,133,0.08);">Spectate</button>` : ""}
-                  </div>
-                `;
+                        <div class="settingsPlayer">
+                          <span class="settingsPlayerName">${escHtml(p.name)}</span>
+                          ${isHost ? `<span class="settingsHostTag">Host</span>` : ""}
+                          ${isMe ? `<span style="font-size:10px;opacity:0.5">You</span>` : ""}
+                          ${canDelegate ? `<button class="settingsMakeHostBtn" data-delegate="${escHtml(p.id)}">Make host</button>` : ""}
+                          ${canKick ? `<button class="settingsMakeHostBtn" data-kick="${escHtml(p.id)}" style="border-color:rgba(251,113,133,0.3);background:rgba(251,113,133,0.08);">Kick</button>` : ""}
+                          ${canSpectate ? `<button class="settingsMakeHostBtn" data-spectate="1" style="border-color:rgba(251,113,133,0.3);background:rgba(251,113,133,0.08);">Spectate</button>` : ""}
+                        </div>
+                      `;
             })
             .join("") || `<div class="settingsLogEntry">No players</div>`;
 
@@ -5629,14 +5876,14 @@
           `<div class="qrTitle">Card Reference</div>` +
           QUICK_REF_ROLES.map(
             (r, i) => `
-            ${i > 0 ? '<div class="qrDivider"></div>' : ""}
-            <div class="qrRole" data-qr-role="${r.role}">
-              <img class="qrRoleImg" src="${ROLE_CARD_IMG[r.role]}" alt="${r.role}" />
-              <div class="qrRoleInfo">
-                <div class="qrRoleName">${r.role}</div>
-                <div class="qrRoleDesc">${r.desc}</div>
-              </div>
-            </div>`,
+                  ${i > 0 ? '<div class="qrDivider"></div>' : ""}
+                  <div class="qrRole" data-qr-role="${r.role}">
+                    <img class="qrRoleImg" src="${ROLE_CARD_IMG[r.role]}" alt="${r.role}" />
+                    <div class="qrRoleInfo">
+                      <div class="qrRoleName">${r.role}</div>
+                      <div class="qrRoleDesc">${r.desc}</div>
+                    </div>
+                  </div>`,
           ).join("");
         panel.querySelectorAll("[data-qr-role]").forEach((el) => {
           el.addEventListener("click", () => openCardZoom(el.dataset.qrRole));
@@ -5990,11 +6237,15 @@
               minute: "2-digit",
             });
             return `
-            <div class="chatMsg ${isMine ? "mine" : "theirs"}">
-              ${!isMine ? `<div class="chatMsgName">${escHtml(entry.name)}</div>` : ""}
-              <div class="chatMsgBubble">${escHtml(entry.text)}</div>
-              <div class="chatMsgTime">${time}</div>
-            </div>`;
+                  <div class="chatMsg ${isMine ? "mine" : "theirs"}">
+                    ${!isMine ? `<div class="chatMsgName">${escHtml(entry.name)}</div>` : ""}
+        ${
+          entry.chip && CHIP_DEFS[entry.chip]
+            ? `<div class="chatMsgChip" style="background:${CHIP_DEFS[entry.chip].bg};border:1px solid ${CHIP_DEFS[entry.chip].border};">${CHIP_DEFS[entry.chip].label}${entry.chipTarget ? `<span style="opacity:0.7;margin-left:5px;font-weight:700;">→ ${escHtml(entry.chipTarget)}</span>` : ""}</div>`
+            : `<div class="chatMsgBubble">${escHtml(entry.text || "")}</div>`
+        }
+                    <div class="chatMsgTime">${time}</div>
+                  </div>`;
           })
           .join("");
         container.scrollTop = container.scrollHeight;
@@ -6029,12 +6280,101 @@
         e.stopPropagation();
         const panel = document.getElementById("chatPanel");
         if (!panel) return;
+        if (pendingChip) {
+          pendingChip = null;
+          resetChipRow();
+        }
         panel.classList.contains("show") ? closeChatPanel() : openChatPanel();
       });
 
       document
         .getElementById("chatSendBtn")
         ?.addEventListener("click", sendChatMessage);
+
+      const CHIP_DEFS = {
+        bluffing: {
+          label: "🤥 Bluffing",
+          bg: "rgba(251,113,133,0.16)",
+          border: "rgba(251,113,133,0.35)",
+        },
+        trust: {
+          label: "✅ Trust",
+          bg: "rgba(45,212,191,0.13)",
+          border: "rgba(45,212,191,0.32)",
+        },
+        block: {
+          label: "⚠️ Block",
+          bg: "rgba(251,191,36,0.13)",
+          border: "rgba(251,191,36,0.32)",
+        },
+        target: {
+          label: "🎯 Targeting",
+          bg: "rgba(167,139,250,0.14)",
+          border: "rgba(167,139,250,0.35)",
+        },
+      };
+
+      let pendingChip = null;
+
+      document.getElementById("chipRow")?.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-chip]");
+        if (!btn) return;
+        pendingChip = btn.dataset.chip;
+        // show a toast hint and close chat so user can tap a seat
+        closeChatPanel();
+        showToast(`${CHIP_DEFS[pendingChip].label} — tap a seat`);
+      });
+
+      function renderChipTargets() {
+        const row = document.getElementById("chipRow");
+        if (!row || !lastVm || !pendingChip) return;
+        const vm = lastVm;
+        const mySeatId = vm.you?.seatId;
+        const others = vm.players.filter(
+          (p) =>
+            p?.id && p.id !== mySeatId && p.influence?.some((c) => !c.revealed),
+        );
+        if (others.length === 0) {
+          pendingChip = null;
+          return;
+        }
+        row.innerHTML = `
+    <span style="font-size:11px;opacity:0.55;align-self:center;white-space:nowrap;">${CHIP_DEFS[pendingChip].label} →</span>
+    ${others
+      .map((p) => {
+        const [lName] = splitTeamName(p.name || "");
+        return `<button class="chipBtn" data-chip-target="${escHtml(p.id)}">${escHtml(lName || p.id)}</button>`;
+      })
+      .join("")}
+    <button class="chipBtn" data-chip-cancel style="opacity:0.5;">✕</button>`;
+        row.querySelectorAll("[data-chip-target]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const targetId = btn.dataset.chipTarget;
+            const [targetName] = splitTeamName(
+              vm.players.find((p) => p.id === targetId)?.name || targetId,
+            );
+            wsSend({ type: "chat", chip: pendingChip, chipTarget: targetName });
+            pendingChip = null;
+            resetChipRow();
+          });
+        });
+        row
+          .querySelector("[data-chip-cancel]")
+          ?.addEventListener("click", () => {
+            pendingChip = null;
+            resetChipRow();
+          });
+      }
+
+      function resetChipRow() {
+        const row = document.getElementById("chipRow");
+        if (!row) return;
+        row.innerHTML = `
+    <button class="chipBtn" data-chip="bluffing">🤥 Bluffing</button>
+    <button class="chipBtn" data-chip="trust">✅ Trust</button>
+    <button class="chipBtn" data-chip="block">⚠️ Block</button>
+    <button class="chipBtn" data-chip="target">🎯 Targeting</button>`;
+      }
 
       document.getElementById("chatInput")?.addEventListener("keydown", (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -6168,23 +6508,23 @@
 
         if (phase === "lobby") {
           html += `
-                  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);">
-                    <span style="font-weight:700;font-size:15px;">Bots</span>
-                    <div style="display:flex;align-items:center;gap:14px;">
-                      <button id="hsBotMinus" style="width:34px;height:34px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;" ${botCount === 0 ? "disabled" : ""}>−</button>
-                      <span style="font-weight:900;font-size:16px;min-width:18px;text-align:center;">${botCount}</span>
-                      <button id="hsBotPlus" style="width:34px;height:34px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;" ${!hasEmptySlot ? "disabled" : ""}>+</button>
-                    </div>
-                  </div>
-                  <button id="hsRandomise" style="width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);">🔀 Randomise Teams</button>
-                  <button id="hsReset" style="width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(251,113,133,0.28);background:rgba(251,113,133,0.1);">↺ Reset Teams</button>
-                `;
+                        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);">
+                          <span style="font-weight:700;font-size:15px;">Bots</span>
+                          <div style="display:flex;align-items:center;gap:14px;">
+                            <button id="hsBotMinus" style="width:34px;height:34px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;" ${botCount === 0 ? "disabled" : ""}>−</button>
+                            <span style="font-weight:900;font-size:16px;min-width:18px;text-align:center;">${botCount}</span>
+                            <button id="hsBotPlus" style="width:34px;height:34px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;" ${!hasEmptySlot ? "disabled" : ""}>+</button>
+                          </div>
+                        </div>
+                        <button id="hsRandomise" style="width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);">🔀 Randomise Teams</button>
+                        <button id="hsReset" style="width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(251,113,133,0.28);background:rgba(251,113,133,0.1);">↺ Reset Teams</button>
+                      `;
         }
 
         if (phase === "playing") {
           html += `
-                  <button id="hsStop" style="width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(251,113,133,0.28);background:rgba(251,113,133,0.1);">⏹ Stop Game</button>
-                `;
+                        <button id="hsStop" style="width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid rgba(251,113,133,0.28);background:rgba(251,113,133,0.1);">⏹ Stop Game</button>
+                      `;
         }
 
         const ts = vm.raw?.timerSettings || {
@@ -6196,40 +6536,40 @@
         const turnOpts = [15, 30, 45, 60, 90];
         const respOpts = [5, 10, 15, 20, 30];
         html += `
-                <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.05);padding:12px 14px;display:grid;gap:10px;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <span style="font-weight:700;font-size:15px;">⏱ Timer</span>
-                    <button id="hsTimerToggle" style="padding:6px 14px;border-radius:999px;font-size:13px;background:${ts.enabled ? "rgba(45,212,191,0.18)" : "rgba(255,255,255,0.06)"};border:1px solid ${ts.enabled ? "rgba(45,212,191,0.35)" : "rgba(255,255,255,0.14)"};">${ts.enabled ? "On" : "Off"}</button>
-                  </div>
-                  ${
-                    ts.enabled
-                      ? `
-      <div>
-                      <div style="font-size:11px;opacity:0.6;margin-bottom:6px;">Turn time</div>
-                      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-                        ${turnOpts.map((s) => `<button data-turn-sec="${s}" style="padding:5px 10px;border-radius:999px;font-size:12px;background:${Math.round(ts.turnMs / 1000) === s ? "rgba(167,139,250,0.25)" : "rgba(255,255,255,0.05)"};border:1px solid ${Math.round(ts.turnMs / 1000) === s ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.12)"};">${s}s</button>`).join("")}
-                        <div style="display:flex;align-items:center;gap:4px;">
-                          <input id="turnCustomInput" type="number" min="5" max="120" placeholder="custom" value="${!turnOpts.includes(Math.round(ts.turnMs / 1000)) ? Math.round(ts.turnMs / 1000) : ""}" style="width:64px;padding:4px 7px;font-size:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:var(--ink);outline:none;" />
-                          <span style="font-size:11px;opacity:0.45;">s</span>
+                      <div style="border:1px solid rgba(255,255,255,0.12);border-radius:14px;background:rgba(255,255,255,0.05);padding:12px 14px;display:grid;gap:10px;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                          <span style="font-weight:700;font-size:15px;">⏱ Timer</span>
+                          <button id="hsTimerToggle" style="padding:6px 14px;border-radius:999px;font-size:13px;background:${ts.enabled ? "rgba(45,212,191,0.18)" : "rgba(255,255,255,0.06)"};border:1px solid ${ts.enabled ? "rgba(45,212,191,0.35)" : "rgba(255,255,255,0.14)"};">${ts.enabled ? "On" : "Off"}</button>
                         </div>
+                        ${
+                          ts.enabled
+                            ? `
+            <div>
+                            <div style="font-size:11px;opacity:0.6;margin-bottom:6px;">Turn time</div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                              ${turnOpts.map((s) => `<button data-turn-sec="${s}" style="padding:5px 10px;border-radius:999px;font-size:12px;background:${Math.round(ts.turnMs / 1000) === s ? "rgba(167,139,250,0.25)" : "rgba(255,255,255,0.05)"};border:1px solid ${Math.round(ts.turnMs / 1000) === s ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.12)"};">${s}s</button>`).join("")}
+                              <div style="display:flex;align-items:center;gap:4px;">
+                                <input id="turnCustomInput" type="number" min="5" max="120" placeholder="custom" value="${!turnOpts.includes(Math.round(ts.turnMs / 1000)) ? Math.round(ts.turnMs / 1000) : ""}" style="width:64px;padding:4px 7px;font-size:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:var(--ink);outline:none;" />
+                                <span style="font-size:11px;opacity:0.45;">s</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <div style="font-size:11px;opacity:0.6;margin-bottom:6px;">Response time</div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                              ${respOpts.map((s) => `<button data-resp-sec="${s}" style="padding:5px 10px;border-radius:999px;font-size:12px;background:${Math.round(ts.responseMs / 1000) === s ? "rgba(167,139,250,0.25)" : "rgba(255,255,255,0.05)"};border:1px solid ${Math.round(ts.responseMs / 1000) === s ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.12)"};">${s}s</button>`).join("")}
+                              <div style="display:flex;align-items:center;gap:4px;">
+                                <input id="respCustomInput" type="number" min="3" max="120" placeholder="custom" value="${!respOpts.includes(Math.round(ts.responseMs / 1000)) ? Math.round(ts.responseMs / 1000) : ""}" style="width:64px;padding:4px 7px;font-size:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:var(--ink);outline:none;" />
+                                <span style="font-size:11px;opacity:0.45;">s</span>
+                              </div>
+                            </div>
+                          </div>
+                          ${phase === "playing" ? `<button id="hsTimerPause" style="width:100%;padding:8px 14px;border-radius:10px;font-size:13px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);">${ts.paused ? "▶ Resume Timer" : "⏸ Pause Timer"}</button>` : ""}
+                        `
+                            : ""
+                        }
                       </div>
-                    </div>
-                    <div>
-                      <div style="font-size:11px;opacity:0.6;margin-bottom:6px;">Response time</div>
-                      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-                        ${respOpts.map((s) => `<button data-resp-sec="${s}" style="padding:5px 10px;border-radius:999px;font-size:12px;background:${Math.round(ts.responseMs / 1000) === s ? "rgba(167,139,250,0.25)" : "rgba(255,255,255,0.05)"};border:1px solid ${Math.round(ts.responseMs / 1000) === s ? "rgba(167,139,250,0.5)" : "rgba(255,255,255,0.12)"};">${s}s</button>`).join("")}
-                        <div style="display:flex;align-items:center;gap:4px;">
-                          <input id="respCustomInput" type="number" min="3" max="120" placeholder="custom" value="${!respOpts.includes(Math.round(ts.responseMs / 1000)) ? Math.round(ts.responseMs / 1000) : ""}" style="width:64px;padding:4px 7px;font-size:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.06);color:var(--ink);outline:none;" />
-                          <span style="font-size:11px;opacity:0.45;">s</span>
-                        </div>
-                      </div>
-                    </div>
-                    ${phase === "playing" ? `<button id="hsTimerPause" style="width:100%;padding:8px 14px;border-radius:10px;font-size:13px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);">${ts.paused ? "▶ Resume Timer" : "⏸ Pause Timer"}</button>` : ""}
-                  `
-                      : ""
-                  }
-                </div>
-              `;
+                    `;
 
         content.innerHTML = html;
 
@@ -6611,6 +6951,264 @@
         )
           connect();
       });
+
+      function buildBluffClaims(vm, role) {
+        const log = vm.raw?.gameLog || [];
+        const roleKeys = {
+          Duke: ["Tax", "blocks Foreign Aid", "Duke"],
+          Assassin: ["Assassin", "assassinate"],
+          Captain: ["Steal", "steal", "Captain"],
+          Ambassador: ["Exchange", "exchange", "Ambassador"],
+          Contessa: ["Contessa"],
+        };
+        const keywords = roleKeys[role] || [];
+        const claims = [];
+        for (const entry of log) {
+          const msg = entry.msg || "";
+          if (keywords.some((k) => msg.includes(k))) {
+            claims.push({ role, msg });
+          }
+        }
+        return claims;
+      }
+
+      function openBluffTracker(vm, role) {
+        const inner = document.getElementById("bluffTrackerInner");
+        const popup = document.getElementById("bluffTrackerPopup");
+        if (!inner || !popup) return;
+        const claims = buildBluffClaims(vm, role);
+        inner.innerHTML =
+          `<div style="font-weight:900;font-size:13px;margin-bottom:8px;opacity:0.75;">${escHtml(role)} claims this game</div>` +
+          (claims.length === 0
+            ? '<div style="font-size:12px;opacity:0.5;text-align:center;padding:8px;">No claims yet.</div>'
+            : claims
+                .map(
+                  (c) => `
+                      <div class="bluffRow">
+                        <img class="bluffRoleImg" src="${ROLE_CARD_IMG[c.role] || ROLE_CARD_IMG.__BACK__}" alt="${c.role}" />
+                        <div class="bluffRoleInfo">
+                          <div class="bluffClaimer">${escHtml(c.msg)}</div>
+                        </div>
+                      </div>`,
+                )
+                .join(""));
+        popup.classList.add("show");
+      }
+
+      document
+        .getElementById("bluffTrackerPopup")
+        ?.addEventListener("click", (e) => {
+          if (e.target === document.getElementById("bluffTrackerPopup"))
+            document
+              .getElementById("bluffTrackerPopup")
+              .classList.remove("show");
+        });
+
+      document.getElementById("bluffTracker")?.addEventListener("click", () => {
+        if (lastVm) openBluffTracker(lastVm);
+      });
+
+      (function () {
+        const bd = document.createElement("div");
+        bd.id = "profilesBackdrop";
+        bd.style.cssText =
+          "position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:1000;";
+        bd.innerHTML = `
+                <div style="width:min(340px,100%);max-height:82vh;overflow:auto;background:rgba(10,10,20,0.95);border:1px solid rgba(255,255,255,0.15);border-radius:18px;padding:16px;backdrop-filter:blur(10px);display:grid;gap:10px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <b id="profilesTitle" style="font-size:15px;">Player Profiles</b>
+                    <button id="profilesCloseBtn" class="pill" style="padding:5px 12px;">✕</button>
+                  </div>
+                  <div id="profilesContent"></div>
+                </div>`;
+        document.body.appendChild(bd);
+
+        function renderProfileList() {
+          const stats = getStats();
+          // build set of keys for players currently in the room only
+          const currentKeys = new Set();
+          if (lastVm) {
+            const rawSeats = lastVm.raw?.seats || [];
+            if (lastVm.phase === "lobby") {
+              for (const p of lastVm.players) {
+                if (!p?.name || p.id?.startsWith?.("bot-")) continue;
+                const isMe = p.id === myHumanId;
+                const key = isMe ? myDeviceId : p.name;
+                if (!stats[key])
+                  stats[key] = { ...newStat(p.name), isHuman: true };
+                else
+                  stats[key].name = isMe ? stats[key].name || p.name : p.name;
+                currentKeys.add(key);
+              }
+              saveStats(stats);
+            } else {
+              for (const p of lastVm.players) {
+                if (!p?.name) continue;
+                const seatIndex = parseInt((p.id || "").replace("S", "")) - 1;
+                const rawSeat = rawSeats[seatIndex] || {};
+                if (rawSeat.leaderId?.startsWith("bot-")) continue;
+                const [lName, aName] = splitTeamName(p.name);
+                const isMe = p.id === lastVm.you?.seatId;
+                if (lName)
+                  currentKeys.add(
+                    isMe && lastVm.you?.role === "leader" ? myDeviceId : lName,
+                  );
+                if (aName)
+                  currentKeys.add(
+                    isMe && lastVm.you?.role === "advisor" ? myDeviceId : aName,
+                  );
+              }
+            }
+          }
+          const keys = [...currentKeys].sort(
+            (a, b) =>
+              (stats[b]?.gamesPlayed || 0) - (stats[a]?.gamesPlayed || 0),
+          );
+          const c = document.getElementById("profilesContent");
+          document.getElementById("profilesTitle").textContent =
+            "Player Profiles";
+          if (keys.length === 0) {
+            c.innerHTML =
+              '<div style="font-size:12px;opacity:0.5;text-align:center;padding:16px;">No stats yet. Play a game first!</div>';
+            return;
+          }
+          c.innerHTML = keys
+            .map(
+              (key) => `
+                  <div data-profile="${escHtml(key)}" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);cursor:pointer;margin-bottom:6px;">
+                    <span style="font-weight:800;">${escHtml(stats[key].name || key)}${key === myDeviceId ? ' <span style="font-size:10px;opacity:0.4;">(you)</span>' : ""}</span>
+                    <span style="font-size:11px;opacity:0.5;">${stats[key].gamesPlayed} games ›</span>
+                  </div>`,
+            )
+            .join("");
+          c.querySelectorAll("[data-profile]").forEach((el) =>
+            el.addEventListener("click", () =>
+              renderProfileCard(el.dataset.profile),
+            ),
+          );
+        }
+
+        function renderProfileCard(name) {
+          const stats = getStats();
+          const s = stats[name];
+          if (!s) return;
+          const c = document.getElementById("profilesContent");
+          const wr = s.gamesPlayed
+            ? Math.round((s.wins / s.gamesPlayed) * 100)
+            : 0;
+          const cards = Object.entries(s.cardCounts || {}).sort(
+            (a, b) => b[1] - a[1],
+          );
+          const maxCard = cards[0]?.[1] || 1;
+          document.getElementById("profilesTitle").innerHTML =
+            `<span id="profileBack" style="cursor:pointer;opacity:0.6;margin-right:6px;">←</span>${escHtml(s.name || name)}`;
+          document
+            .getElementById("profileBack")
+            ?.addEventListener("click", renderProfileList);
+          c.innerHTML = `
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                    <div style="text-align:center;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                      <div style="font-size:22px;font-weight:900;">${s.gamesPlayed}</div>
+                      <div style="font-size:10px;opacity:0.5;margin-top:2px;">Games</div>
+                    </div>
+                    <div style="text-align:center;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                      <div style="font-size:22px;font-weight:900;">${s.wins}</div>
+                      <div style="font-size:10px;opacity:0.5;margin-top:2px;">Wins</div>
+                    </div>
+                    <div style="text-align:center;padding:10px 6px;border-radius:10px;background:rgba(45,212,191,0.08);border:1px solid rgba(45,212,191,0.2);">
+                      <div style="font-size:22px;font-weight:900;color:var(--good);">${wr}%</div>
+                      <div style="font-size:10px;opacity:0.5;margin-top:2px;">Win rate</div>
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+                    <div style="text-align:center;padding:8px 6px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                      <div style="font-size:17px;font-weight:900;">👑 ${s.timesLeader}</div>
+                      <div style="font-size:10px;opacity:0.5;margin-top:2px;">Leader</div>
+                    </div>
+                    <div style="text-align:center;padding:8px 6px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                      <div style="font-size:17px;font-weight:900;">🤝 ${s.timesAdvisor}</div>
+                      <div style="font-size:10px;opacity:0.5;margin-top:2px;">Advisor</div>
+                    </div>
+                  </div>
+                  ${
+                    cards.length > 0
+                      ? `
+                  <div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;background:rgba(255,255,255,0.03);margin-top:8px;">
+                    <div style="font-size:10px;opacity:0.45;font-weight:900;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px;">Cards held</div>
+                    ${cards
+                      .map(
+                        ([role, count]) => `
+                      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <img src="${ROLE_CARD_IMG[role] || ROLE_CARD_IMG.__BACK__}" style="width:20px;height:30px;border-radius:3px;object-fit:contain;flex-shrink:0;" />
+                        <div style="flex:1;min-width:0;">
+                          <div style="display:flex;justify-content:space-between;margin-bottom:3px;font-size:11px;font-weight:700;">${escHtml(role)}<span style="opacity:0.55;">${count}</span></div>
+                          <div style="height:4px;border-radius:999px;background:rgba(255,255,255,0.08);"><div style="height:100%;border-radius:999px;background:var(--accent);width:${Math.round((count / maxCard) * 100)}%;"></div></div>
+                        </div>
+                      </div>`,
+                      )
+                      .join("")}
+                  </div>`
+                      : ""
+                  }`;
+        }
+
+        bd.addEventListener("click", (e) => {
+          if (e.target === bd) bd.style.display = "none";
+        });
+        document
+          .getElementById("profilesCloseBtn")
+          ?.addEventListener("click", () => (bd.style.display = "none"));
+        document
+          .getElementById("settingsProfilesBtn")
+          ?.addEventListener("click", () => {
+            closeSettings();
+            // seed any current human players who have no entry yet
+            if (lastVm) {
+              const stats = getStats();
+              const rawSeats = lastVm.raw?.seats || [];
+              const phase = lastVm.phase;
+              if (phase === "lobby") {
+                for (const seat of rawSeats) {
+                  if (!seat?.leaderId || seat.leaderId.startsWith("bot-"))
+                    continue;
+                  const lName = seat.leaderId
+                    ? playerNameBySeatId(
+                        lastVm,
+                        "S" + (rawSeats.indexOf(seat) + 1),
+                      )
+                    : null;
+                  // use joinOrder names instead
+                }
+                for (const p of lastVm.players) {
+                  if (!p?.name || p.id?.startsWith?.("bot-")) continue;
+                  if (!stats[p.name]) {
+                    stats[p.name] = { ...newStat(), isHuman: true };
+                  }
+                }
+              } else {
+                for (const p of lastVm.players) {
+                  if (!p?.name) continue;
+                  const seatIndex = parseInt((p.id || "").replace("S", "")) - 1;
+                  const rawSeat = rawSeats[seatIndex] || {};
+                  if (rawSeat.leaderId?.startsWith("bot-")) continue;
+                  const [lName, aName] = splitTeamName(p.name);
+                  const isMe = p.id === lastVm.you?.seatId;
+                  const lKey =
+                    isMe && lastVm.you?.role === "leader" ? myDeviceId : lName;
+                  const aKey =
+                    isMe && lastVm.you?.role === "advisor" ? myDeviceId : aName;
+                  if (lName && !stats[lKey])
+                    stats[lKey] = { ...newStat(lName), isHuman: true };
+                  if (aName && !stats[aKey])
+                    stats[aKey] = { ...newStat(aName), isHuman: true };
+                }
+              }
+              saveStats(stats);
+            }
+            renderProfileList();
+            bd.style.display = "flex";
+          });
+      })();
     </script>
     <div
       id="winnerPopup"
